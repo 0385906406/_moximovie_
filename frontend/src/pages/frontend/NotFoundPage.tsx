@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const QUOTES = [
@@ -16,7 +16,6 @@ export default function NotFoundPage() {
   const [mouse, setMouse]           = useState({ x: 0.5, y: 0.5 });
   const [tick, setTick]             = useState(0);
   const [particles, setParticles]   = useState<{ x: number; y: number; s: number; d: number; o: number }[]>([]);
-  const rafRef                      = useRef<number | null>(null);
 
   /* quotes */
   useEffect(() => {
@@ -42,7 +41,7 @@ export default function NotFoundPage() {
   /* floating particles */
   useEffect(() => {
     setParticles(
-      Array.from({ length: 28 }, (_, i) => ({
+      Array.from({ length: 28 }, () => ({
         x: Math.random() * 100,
         y: Math.random() * 100,
         s: Math.random() * 3 + 1,
