@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+.output/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.local
+client_secret*.json
+*secret*.json
+*credentials*.json
+serviceAccountKey.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+mockups/
