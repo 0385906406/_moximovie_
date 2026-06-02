@@ -5,6 +5,7 @@ import type { Swiper as SwiperType } from "swiper";
 import type { Movie } from "@/types/movie";
 import { Link } from "react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { MovieHoverPopup } from "@/components/frontend/MovieHoverPopup";
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap');
@@ -215,6 +216,7 @@ function ChinaMoviesSection() {
                     >
                         {movies.map((movie, idx) => (
                             <SwiperSlide key={movie._id} style={{ width: "auto" }}>
+                                <MovieHoverPopup movie={movie}>
                                 <div
                                     className="cn-slide-item cn-card cursor-pointer"
                                     style={{ width: "clamp(160px,17vw,220px)", animationDelay: `${idx * 40}ms` }}
@@ -307,6 +309,7 @@ function ChinaMoviesSection() {
                                         />
                                     </div>
                                 </div>
+                                </MovieHoverPopup>
                             </SwiperSlide>
                         ))}
                     </Swiper>

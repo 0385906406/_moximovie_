@@ -17,6 +17,17 @@ export default {
         "2xl": "1400px",
       },
     },
+    borderRadius: {
+      none:    "0",
+      sm:      "5.28px",
+      DEFAULT: "5.28px",
+      md:      "5.28px",
+      lg:      "5.28px",
+      xl:      "5.28px",
+      "2xl":   "5.28px",
+      "3xl":   "5.28px",
+      full:    "9999px",
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -83,13 +94,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        heading: ["Inter", "system-ui", "sans-serif"],
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sans: ["Be Vietnam Pro", "system-ui", "sans-serif"],
+        heading: ["Be Vietnam Pro", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

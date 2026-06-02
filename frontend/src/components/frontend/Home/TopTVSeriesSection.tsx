@@ -4,6 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import type { Movie } from "@/types/movie";
 import { Link } from "react-router";
+import { MovieHoverPopup } from "@/components/frontend/MovieHoverPopup";
 
 // ── Skeleton ──
 function SkeletonCard() {
@@ -93,6 +94,7 @@ function TopTVSeriesSection() {
                             key={movie._id}
                             style={{ width: "clamp(140px, 38vw, 296px)" }}
                         >
+                            <MovieHoverPopup movie={movie}>
                             <div className="group cursor-pointer w-full">
 
                                 {/* ── POSTER với flip chẵn/lẻ GIỮ NGUYÊN ── */}
@@ -194,6 +196,7 @@ function TopTVSeriesSection() {
                                     </div>
                                 </div>
                             </div>
+                            </MovieHoverPopup>
                         </SwiperSlide>
                     ))}
                 </Swiper>

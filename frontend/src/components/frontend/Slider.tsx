@@ -20,7 +20,6 @@ function preloadImage(src: string) {
     img.src = src;
 }
 
-/* track previous index để giữ BG layer cũ trong lúc dissolve */
 function usePrevious<T>(value: T) {
     const ref = useRef<T>(value);
     useEffect(() => { ref.current = value; }, [value]);
@@ -32,7 +31,7 @@ const Slider: React.FC = () => {
     const [current, setCurrent]   = useState(0);
     const [loading, setLoading]   = useState(true);
     const [isLimitReached, setIsLimitReached] = useState(false);
-    const [contentKey, setContentKey]         = useState(0); // tăng để re-trigger CSS animations
+    const [contentKey, setContentKey]         = useState(0);
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const dragStartX  = useRef<number | null>(null);
@@ -40,7 +39,6 @@ const Slider: React.FC = () => {
 
     const prevIndex = usePrevious(current);
 
-    /* ── Fetch ── */
     useEffect(() => {
         const fetchSlides = async () => {
             try {
@@ -64,7 +62,6 @@ const Slider: React.FC = () => {
         fetchSlides();
     }, []);
 
-    /* ── Autoplay ── */
     const startInterval = useCallback(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = setInterval(() => {
@@ -85,12 +82,10 @@ const Slider: React.FC = () => {
         preloadImage(`https://phimimg.com/${slides[next].thumb_url}`);
     }, [current, slides]);
 
-    /* ── Dissolve transition ── */
     const triggerChange = useCallback(
         (indexFn: (prev: number) => number) => {
             if (isAnimating.current || !slides.length) return;
             isAnimating.current = true;
-            /* nội dung fade ra trong 350ms, rồi slide đổi + content re-mount */
             setTimeout(() => {
                 setCurrent(indexFn);
                 setContentKey((k) => k + 1);
@@ -111,7 +106,6 @@ const Slider: React.FC = () => {
         triggerChange((p) => (p - 1 + slides.length) % slides.length); startInterval();
     }, [slides.length, triggerChange, startInterval]);
 
-    /* ── Swipe ── */
     const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => { dragStartX.current = e.touches[0].clientX; };
     const handleTouchMove  = (e: TouchEvent<HTMLDivElement>) => {
         if (dragStartX.current === null) return;
@@ -139,7 +133,6 @@ const Slider: React.FC = () => {
         onMouseLeave: handleMouseUp,
     };
 
-    /* ── Loading ── */
     if (loading) {
         return (
             <div className="w-full h-60 sm:h-[650px] xl:h-[850px] flex items-center justify-center bg-[#191B24]">
@@ -151,7 +144,6 @@ const Slider: React.FC = () => {
 
     const slide = slides[current];
 
-    /* ── Affiliate wrapper ── */
     const AffiliateWrap = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
         if (isLimitReached) return <div className={className}>{children}</div>;
         return (
@@ -165,41 +157,44 @@ const Slider: React.FC = () => {
         );
     };
 
+    /* ─── font tokens (mirror NIC Design System) ─── */
+    const fontPrimary  = "'Be Vietnam Pro', 'Noto Sans', system-ui, sans-serif";
+    const fontMonoSans = "'Space Grotesk', sans-serif";
+
     return (
         <>
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-                /* ── Progress bar ── */
                 @keyframes sl-progress {
                     from { width: 0% }
                     to   { width: 100% }
                 }
-                /* ── Ken Burns ── */
                 @keyframes sl-kenburns {
                     0%   { transform: scale(1)    translate(0, 0); }
                     100% { transform: scale(1.07) translate(-1.2%, 0.8%); }
                 }
-                /* ── BG cross-dissolve ── */
                 @keyframes sl-bgFadeIn {
                     from { opacity: 0 }
                     to   { opacity: 1 }
                 }
-                /* ── Content stagger ── */
                 @keyframes sl-fadeUp {
-                    from { opacity: 0; transform: translateY(20px); }
+                    from { opacity: 0; transform: translateY(18px); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes sl-revealMask {
                     from { clip-path: inset(0 100% 0 0); }
                     to   { clip-path: inset(0 0 0 0); }
                 }
-                /* ── Watermark float ── */
                 @keyframes sl-numFloat {
                     0%, 100% { transform: translateY(0px); }
                     50%      { transform: translateY(-10px); }
                 }
-                /* ── Grain noise ── */
+                @keyframes sl-dotPulse {
+                    0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
+                    50%      { box-shadow: 0 0 0 4px rgba(74,222,128,0); }
+                }
+
                 .sl-wrap::after {
                     content: ''; position: absolute; inset: 0; z-index: 9;
                     pointer-events: none;
@@ -207,7 +202,6 @@ const Slider: React.FC = () => {
                     opacity: 0.022; mix-blend-mode: overlay;
                 }
 
-                /* ── Animation classes ── */
                 .sl-cat    { animation: sl-revealMask  0.55s cubic-bezier(.22,1,.36,1) 0.05s both; }
                 .sl-title  { animation: sl-fadeUp      0.65s cubic-bezier(.22,1,.36,1) 0.12s both; }
                 .sl-origin { animation: sl-fadeUp      0.65s cubic-bezier(.22,1,.36,1) 0.22s both; }
@@ -216,13 +210,11 @@ const Slider: React.FC = () => {
                 .sl-genres { animation: sl-fadeUp      0.55s cubic-bezier(.22,1,.36,1) 0.46s both; }
                 .sl-btns   { animation: sl-fadeUp      0.55s cubic-bezier(.22,1,.36,1) 0.54s both; }
 
-                /* ── Vertical tab transitions ── */
                 .sl-vtab { transition: opacity 0.3s ease, transform 0.3s cubic-bezier(.22,1,.36,1); }
                 .sl-vtab:hover:not(.active) { opacity: 0.7 !important; }
                 .sl-vtab-thumb { transition: width 0.3s cubic-bezier(.22,1,.36,1), height 0.3s cubic-bezier(.22,1,.36,1); }
                 .sl-vtab-line  { transition: height 0.35s cubic-bezier(.22,1,.36,1); }
 
-                /* ── Button hover ── */
                 .sl-btn-green {
                     transition: transform 0.22s cubic-bezier(.22,1,.36,1),
                                 box-shadow 0.22s ease,
@@ -244,7 +236,6 @@ const Slider: React.FC = () => {
                     background: rgba(74,222,128,0.06) !important;
                 }
 
-                /* ── Nav button ── */
                 .sl-nav { transition: border-color 0.22s, color 0.22s, background 0.22s, box-shadow 0.22s; }
                 .sl-nav:hover {
                     border-color: rgba(74,222,128,0.5) !important;
@@ -253,18 +244,11 @@ const Slider: React.FC = () => {
                     box-shadow: 0 0 14px rgba(74,222,128,0.2) !important;
                 }
 
-                /* ── Vertical tab hover ── */
                 .sl-vtab:hover .sl-vtab-thumb {
                     outline-color: rgba(74,222,128,0.35) !important;
                 }
                 .sl-vtab:hover .sl-vtab-num {
                     color: rgba(74,222,128,0.7) !important;
-                }
-
-                /* ── Mobile dot pulse when active ── */
-                @keyframes sl-dotPulse {
-                    0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
-                    50%      { box-shadow: 0 0 0 4px rgba(74,222,128,0); }
                 }
             `}</style>
 
@@ -273,7 +257,7 @@ const Slider: React.FC = () => {
                 style={{ zIndex: 30 }}
                 {...swipeHandlers}
             >
-                {/* ── PROGRESS BAR (top, green) ── */}
+                {/* ── PROGRESS BAR ── */}
                 <div className="absolute top-0 left-0 right-0 z-50" style={{ height: "2px", background: "rgba(74,222,128,0.12)" }}>
                     <div
                         key={`prog-${current}`}
@@ -313,25 +297,20 @@ const Slider: React.FC = () => {
                 })}
 
                 {/* ── OVERLAY STACK ── */}
-                {/* 1. Dark veil */}
-                <div className="pointer-events-none absolute inset-0 z-10 bg-black/40" />
-                {/* 2. Vignette */}
+                <div className="pointer-events-none absolute inset-0 z-10 bg-black/35" />
                 <div className="pointer-events-none absolute inset-0 z-10"
-                    style={{ background: "radial-gradient(ellipse 90% 90% at center, transparent 28%, rgba(0,0,0,0.9) 100%)" }} />
-                {/* 3. Left gradient (nền chữ) */}
+                    style={{ background: "radial-gradient(ellipse 90% 90% at center, transparent 28%, rgba(0,0,0,0.88) 100%)" }} />
                 <div className="pointer-events-none absolute inset-y-0 left-0 w-3/5 z-10"
-                    style={{ background: "linear-gradient(to right, rgba(25,27,36,0.92) 0%, rgba(25,27,36,0.5) 60%, transparent 100%)" }} />
-                {/* 4. Bottom fade → #191B24 (cùng màu nền trang) */}
+                    style={{ background: "linear-gradient(to right, rgba(25,27,36,0.95) 0%, rgba(25,27,36,0.5) 60%, transparent 100%)" }} />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
                     style={{
                         height: "52%",
                         background: "linear-gradient(to top, #191B24 0%, rgba(25,27,36,0.97) 25%, rgba(25,27,36,0.55) 62%, transparent 100%)",
                     }}
                 />
-                {/* 5. Dot pattern nhẹ */}
                 <div className="pointer-events-none absolute inset-0 z-10"
                     style={{
-                        opacity: 0.1,
+                        opacity: 0.08,
                         backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 0)",
                         backgroundSize: "28px 28px",
                     }}
@@ -343,12 +322,12 @@ const Slider: React.FC = () => {
                     style={{
                         right: "14%",
                         bottom: "-4%",
-                        fontFamily: "'Playfair Display', serif",
+                        fontFamily: fontMonoSans,
                         fontSize: "clamp(200px, 24vw, 320px)",
-                        fontWeight: 900,
+                        fontWeight: 700,
                         lineHeight: 1,
-                        letterSpacing: "-0.05em",
-                        color: "rgba(255,255,255,0.035)",
+                        letterSpacing: "-0.06em",
+                        color: "rgba(255,255,255,0.03)",
                         userSelect: "none",
                         animation: "sl-numFloat 7s ease-in-out infinite",
                     }}
@@ -368,10 +347,14 @@ const Slider: React.FC = () => {
                                 style={{ opacity: isActive ? 1 : 0.3 }}
                             >
                                 <span
-                                    className="tabular-nums"
+                                    className="sl-vtab-num tabular-nums"
                                     style={{
-                                        fontSize: 10, fontWeight: 600, letterSpacing: "0.1em",
-                                        minWidth: 18, textAlign: "right",
+                                        fontFamily: fontMonoSans,
+                                        fontSize: 10,
+                                        fontWeight: 600,
+                                        letterSpacing: "0.12em",
+                                        minWidth: 18,
+                                        textAlign: "right",
                                         color: isActive ? "#4ade80" : "rgba(255,255,255,0.35)",
                                     }}
                                 >
@@ -398,7 +381,6 @@ const Slider: React.FC = () => {
                                         }}
                                     />
                                 </div>
-                                {/* Active indicator line on far right edge */}
                                 <div
                                     className="sl-vtab-line absolute right-0 top-1/2 -translate-y-1/2 rounded-sm"
                                     style={{
@@ -438,48 +420,65 @@ const Slider: React.FC = () => {
                     style={{ maxWidth: "min(660px, calc(100% - 160px))" }}
                 >
                     {/* Category eyebrow */}
-                    <div className="sl-cat hidden sm:flex items-center gap-2.5 mb-3">
-                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(74,222,128,0.5)", flexShrink: 0, boxShadow: "0 0 6px rgba(74,222,128,0.4)" }} />
+                    <div className="sl-cat hidden sm:flex items-center gap-2.5 mb-3.5">
+                        <div style={{ width: 3, height: 3, borderRadius: "50%", background: "#4ade80", flexShrink: 0, boxShadow: "0 0 6px rgba(74,222,128,0.6)" }} />
                         {slide.country?.length > 0 && (
-                            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.42)" }}>
+                            <span style={{
+                                fontFamily: fontMonoSans,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                letterSpacing: "0.22em",
+                                textTransform: "uppercase",
+                                color: "rgba(255,255,255,0.4)",
+                            }}>
                                 {slide.country.map((c) => c.name).join(", ")}
                             </span>
                         )}
                         {Array.isArray(slide.category) && slide.category[0] && (
                             <>
-                                <div style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(74,222,128,0.5)", flexShrink: 0, boxShadow: "0 0 6px rgba(74,222,128,0.4)" }} />
-                                <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.42)" }}>
+                                <div style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(74,222,128,0.5)", flexShrink: 0 }} />
+                                <span style={{
+                                    fontFamily: fontMonoSans,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.22em",
+                                    textTransform: "uppercase",
+                                    color: "rgba(255,255,255,0.4)",
+                                }}>
                                     {slide.category[0].name}
                                 </span>
                             </>
                         )}
                     </div>
 
-                    {/* Tên phim — Playfair Display serif */}
+                    {/* Tên phim — Be Vietnam Pro 800 */}
                     <h1
-                        className="sl-title text-2xl sm:text-5xl xl:text-[clamp(52px,6vw,80px)]"
+                        className="sl-title text-2xl sm:text-5xl xl:text-[clamp(48px,5.5vw,40px)]"
                         style={{
-                            fontFamily: "'Playfair Display', serif",
-                            fontWeight: 900,
-                            lineHeight: 0.96,
-                            letterSpacing: "-0.025em",
+                            fontFamily: fontPrimary,
+                            fontWeight: 800,
+                            lineHeight: 1.05,
+                            letterSpacing: "-0.02em",
                             color: "#ffffff",
-                            textShadow: "0 4px 32px rgba(0,0,0,0.75)",
+                            textShadow: "0 2px 24px rgba(0,0,0,0.8)",
                             margin: 0,
+                            WebkitFontSmoothing: "antialiased",
                         }}
                         dangerouslySetInnerHTML={{ __html: slide.name ?? "" }}
                     />
 
-                    {/* Tên gốc — italic */}
+                    {/* Tên gốc — italic 400 */}
                     {slide.origin_name && (
                         <div
                             className="sl-origin hidden sm:block mt-2 mb-3"
                             style={{
-                                fontFamily: "'Playfair Display', serif",
+                                fontFamily: fontPrimary,
                                 fontStyle: "italic",
                                 fontWeight: 400,
-                                fontSize: "clamp(14px, 1.7vw, 20px)",
-                                color: "rgba(255,255,255,0.32)",
+                                fontSize: "clamp(13px, 1.5vw, 18px)",
+                                lineHeight: 1.5,
+                                color: "rgba(255,255,255,0.3)",
+                                letterSpacing: "0.01em",
                             }}
                             dangerouslySetInnerHTML={{ __html: slide.origin_name }}
                         />
@@ -488,15 +487,25 @@ const Slider: React.FC = () => {
                     {/* Divider */}
                     <div
                         className="sl-divider hidden sm:block mb-4 rounded-full"
-                        style={{ height: 1, width: 40, background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.5)" }}
+                        style={{
+                            height: 1,
+                            width: 32,
+                            background: "linear-gradient(to right, #4ade80, rgba(74,222,128,0.25))",
+                            boxShadow: "0 0 8px rgba(74,222,128,0.4)",
+                        }}
                     />
 
                     {/* Meta row */}
                     <div className="sl-meta hidden sm:flex items-center gap-3 flex-wrap mb-3">
                         {slide.quality && (
                             <span style={{
-                                fontSize: 10, fontWeight: 700, letterSpacing: "0.12em",
-                                padding: "3px 10px", borderRadius: 2,
+                                fontFamily: fontMonoSans,
+                                fontSize: 9,
+                                fontWeight: 700,
+                                letterSpacing: "0.18em",
+                                textTransform: "uppercase",
+                                padding: "3px 10px",
+                                borderRadius: 2,
                                 border: "1px solid rgba(74,222,128,0.35)",
                                 color: "#4ade80",
                                 background: "rgba(74,222,128,0.07)",
@@ -505,7 +514,13 @@ const Slider: React.FC = () => {
                             </span>
                         )}
                         {(slide.year || slide.time) && (
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+                            <span style={{
+                                fontFamily: fontMonoSans,
+                                fontSize: 11,
+                                fontWeight: 500,
+                                letterSpacing: "0.06em",
+                                color: "rgba(255,255,255,0.28)",
+                            }}>
                                 {[slide.year, slide.time].filter(Boolean).join(" · ")}
                             </span>
                         )}
@@ -518,9 +533,14 @@ const Slider: React.FC = () => {
                                 <span
                                     key={cat.id}
                                     style={{
-                                        fontSize: 11, padding: "3px 12px",
+                                        fontFamily: fontPrimary,
+                                        fontSize: 10,
+                                        fontWeight: 500,
+                                        letterSpacing: "0.04em",
+                                        padding: "3px 11px",
                                         border: "1px solid rgba(255,255,255,0.1)",
-                                        borderRadius: 20, color: "rgba(255,255,255,0.38)",
+                                        borderRadius: 20,
+                                        color: "rgba(255,255,255,0.36)",
                                     }}
                                 >
                                     {cat.name}
@@ -530,27 +550,29 @@ const Slider: React.FC = () => {
                     )}
 
                     {/* BUTTONS */}
-                    <div className="sl-btns flex items-center gap-2.5">
+                    <div className="sl-btns flex items-center gap-3">
                         <Link to={`/phim/${slide.slug}`}>
                             <button
                                 className="sl-btn-green flex items-center gap-2.5"
                                 style={{
-                                    padding: "12px 26px",
+                                    padding: "11px 24px",
                                     background: "#4ade80",
-                                    color: "#0d0f18",
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    letterSpacing: "0.1em",
+                                    color: "#0d1a0f",
+                                    fontFamily: fontMonoSans,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.15em",
+                                    textTransform: "uppercase",
                                     border: "none",
-                                    borderRadius: 2,
+                                    borderRadius: 3,
                                     cursor: "pointer",
                                     boxShadow: "0 4px 22px rgba(74,222,128,0.38)",
                                 }}
                             >
-                                <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 12, height: 12, flexShrink: 0 }}>
+                                <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 11, height: 11, flexShrink: 0 }}>
                                     <path d="M8 5l11 7-11 7z" />
                                 </svg>
-                                <span className="hidden sm:inline tracking-wider">XEM PHIM</span>
+                                <span className="hidden sm:inline">XEM PHIM</span>
                             </button>
                         </Link>
 
@@ -558,14 +580,16 @@ const Slider: React.FC = () => {
                             <button
                                 className="sl-btn-outline flex items-center justify-center"
                                 style={{
-                                    padding: "11px 22px",
+                                    padding: "10px 20px",
                                     background: "transparent",
-                                    color: "rgba(255,255,255,0.55)",
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    letterSpacing: "0.08em",
-                                    border: "1px solid rgba(255,255,255,0.18)",
-                                    borderRadius: 2,
+                                    color: "rgba(255,255,255,0.5)",
+                                    fontFamily: fontMonoSans,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    letterSpacing: "0.12em",
+                                    textTransform: "uppercase",
+                                    border: "1px solid rgba(255,255,255,0.16)",
+                                    borderRadius: 3,
                                     cursor: "pointer",
                                 }}
                             >
@@ -596,7 +620,14 @@ const Slider: React.FC = () => {
                         </button>
                     </AffiliateWrap>
 
-                    <span style={{ fontSize: 11, letterSpacing: "0.1em", color: "rgba(255,255,255,0.28)", whiteSpace: "nowrap" }}>
+                    <span style={{
+                        fontFamily: fontMonoSans,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        letterSpacing: "0.12em",
+                        color: "rgba(255,255,255,0.28)",
+                        whiteSpace: "nowrap",
+                    }}>
                         {String(current + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
                     </span>
 

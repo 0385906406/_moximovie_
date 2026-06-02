@@ -1,12 +1,13 @@
-import { memo, useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
-import { Play } from "lucide-react";
+import { Play, Info } from "lucide-react";
 import type { Movie } from "@/types/movie";
 
-type MovieCardProps = {
+interface Props {
     movie: Movie;
-};
+    children: React.ReactNode;
+}
 
 function formatTime(minutes: number) {
     if (!minutes) return null;
@@ -15,42 +16,52 @@ function formatTime(minutes: number) {
     return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
 }
 
-function MovieCard({ movie }: MovieCardProps) {
-    const poster = movie.poster_url ? `https://phimimg.com/${movie.poster_url}` : "";
-    const thumb  = movie.thumb_url  ? `https://phimimg.com/${movie.thumb_url}`  : poster;
+export function MovieHoverPopup({ movie, children }: Props) {
+    const thumb = movie.thumb_url ? `https://phimimg.com/${movie.thumb_url}`
+                : movie.poster_url ? `https://phimimg.com/${movie.poster_url}` : "";
 
     const wrapRef    = useRef<HTMLDivElement>(null);
     const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [hovered,  setHovered]  = useState(false);
-    const [popupW,   setPopupW]   = useState(300);
-    const [popupTop, setPopupTop] = useState(0);
-    const [popupLeft,setPopupLeft]= useState(0);
+    const [hovered,   setHovered]   = useState(false);
+    const [popupW,    setPopupW]    = useState(300);
+    const [popupTop,  setPopupTop]  = useState(0);
+    const [popupLeft, setPopupLeft] = useState(0);
+
+    const calcPosition = useCallback((rect: DOMRect, pw: number) => {
+        // center horizontally over card, clamp to viewport
+        const cx = rect.left + rect.width / 2;
+        let left = cx - pw / 2;
+        if (left < 12)                          left = rect.left;
+        if (left + pw > window.innerWidth - 12) left = rect.right - pw;
+
+        // center vertically relative to card, clamp to viewport
+        const estimatedH = Math.round(pw * 0.5625 + 160);
+        let top = rect.top + rect.height / 2 - estimatedH / 2;
+        if (top < 8)                                         top = 8;
+        if (top + estimatedH > window.innerHeight - 8)       top = window.innerHeight - estimatedH - 8;
+
+        return { left, top };
+    }, []);
 
     const handleEnter = useCallback(() => {
         if (leaveTimer.current) clearTimeout(leaveTimer.current);
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
         if (wrapRef.current) {
             const rect = wrapRef.current.getBoundingClientRect();
-            const pw   = Math.max(240, Math.round(rect.width * 2.1));
-            const cx   = rect.left + rect.width / 2;
-            let   left = cx - pw / 2;
-            if (left < 12)                          left = rect.left;
-            if (left + pw > window.innerWidth - 12) left = rect.right - pw;
-
-            // căn giữa dọc so với card
-            const estimatedH = Math.round(pw * 0.5625 + 140);
-            let   top  = rect.top + rect.height / 2 - estimatedH / 2;
-            if (top < 8)                                          top = 8;
-            if (top + estimatedH > window.innerHeight - 8)        top = window.innerHeight - estimatedH - 8;
-
+            // nhân 2.1x nhưng cap 380px — tránh popup khổng lồ với card to
+            const pw   = Math.min(380, Math.max(260, Math.round(rect.width * 2.1)));
+            const { left, top } = calcPosition(rect, pw);
             setPopupW(pw);
             setPopupTop(top);
             setPopupLeft(left);
         }
-        setHovered(true);
-    }, []);
+        hoverTimer.current = setTimeout(() => setHovered(true), 180);
+    }, [calcPosition]);
 
     const handleLeave = useCallback(() => {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
         leaveTimer.current = setTimeout(() => setHovered(false), 80);
     }, []);
 
@@ -58,66 +69,24 @@ function MovieCard({ movie }: MovieCardProps) {
         if (leaveTimer.current) clearTimeout(leaveTimer.current);
     }, []);
 
-    // Cập nhật vị trí popup khi scroll
     useEffect(() => {
         if (!hovered) return;
         const update = () => {
             if (!wrapRef.current) return;
             const rect = wrapRef.current.getBoundingClientRect();
             const pw   = popupW;
-            const cx   = rect.left + rect.width / 2;
-            let   left = cx - pw / 2;
-            if (left < 12)                          left = rect.left;
-            if (left + pw > window.innerWidth - 12) left = rect.right - pw;
-            const estimatedH = Math.round(pw * 0.5625 + 140);
-            let   top  = rect.top + rect.height / 2 - estimatedH / 2;
-            if (top < 8)                                    top = 8;
-            if (top + estimatedH > window.innerHeight - 8)  top = window.innerHeight - estimatedH - 8;
+            const { left, top } = calcPosition(rect, pw);
             setPopupTop(top);
             setPopupLeft(left);
         };
         window.addEventListener("scroll", update, { passive: true });
         return () => window.removeEventListener("scroll", update);
-    }, [hovered, popupW]);
+    }, [hovered, popupW, calcPosition]);
 
     return (
-        <div
-            ref={wrapRef}
-            onMouseEnter={handleEnter}
-            onMouseLeave={handleLeave}
-        >
-            {/* ── Base card ── */}
-            <Link
-                to={`/phim/${movie.slug}`}
-                className="group block rounded-[5.28px] border border-white/10 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-1 hover:border-[rgba(0,169,143,0.4)] hover:shadow-[0_16px_32px_-12px_rgba(0,169,143,0.2)]"
-            >
-                <div className="aspect-[2/3] w-full bg-white/5 relative overflow-hidden rounded-[5.28px]">
-                    {poster ? (
-                        <img
-                            src={poster}
-                            alt={movie.name}
-                            className="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:scale-[1.03]"
-                            loading="lazy"
-                            width={400}
-                            height={600}
-                        />
-                    ) : (
-                        <div className="w-full h-full grid place-items-center text-xs text-gray-500">No image</div>
-                    )}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-10 px-3 py-1 text-xs text-white bg-gray-700 backdrop-blur ring-1 ring-white/10">
-                        {movie.year ?? "2025"}
-                    </div>
-                </div>
-                <div className="p-3">
-                    <div className="text-sm text-white text-center line-clamp-1"
-                        dangerouslySetInnerHTML={{ __html: movie.name }} />
-                    <div className="text-xs text-gray-400 text-center line-clamp-1"
-                        dangerouslySetInnerHTML={{ __html: movie.origin_name ?? "" }} />
-                </div>
-            </Link>
+        <div ref={wrapRef} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+            {children}
 
-            {/* ── Popup via portal — thoát khỏi mọi stacking context ── */}
             {hovered && createPortal(
                 <div
                     onMouseEnter={cancelLeave}
@@ -132,7 +101,7 @@ function MovieCard({ movie }: MovieCardProps) {
                     }}
                     className="rounded-xl overflow-hidden border border-white/[0.1] shadow-[0_32px_64px_-8px_rgba(0,0,0,0.9)] animate-[fadeScale_0.18s_ease-out_forwards]"
                 >
-                    {/* Backdrop thumbnail */}
+                    {/* Backdrop */}
                     <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
                         {thumb ? (
                             <img src={thumb} alt={movie.name} className="w-full h-full object-cover" />
@@ -154,7 +123,6 @@ function MovieCard({ movie }: MovieCardProps) {
 
                     {/* Info */}
                     <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
-                        {/* Title */}
                         <div>
                             <p className="text-white font-bold text-[15px] leading-snug line-clamp-1"
                                 dangerouslySetInnerHTML={{ __html: movie.name }} />
@@ -164,7 +132,6 @@ function MovieCard({ movie }: MovieCardProps) {
                             )}
                         </div>
 
-                        {/* Buttons */}
                         <div className="flex items-center gap-2">
                             <Link
                                 to={`/phim/${movie.slug}`}
@@ -173,31 +140,28 @@ function MovieCard({ movie }: MovieCardProps) {
                                 <Play size={13} fill="white" strokeWidth={0} />
                                 Xem ngay
                             </Link>
+                            <Link
+                                to={`/phim/${movie.slug}`}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/[0.1] hover:bg-white/[0.18] text-white rounded-lg text-[13px] font-semibold transition-colors duration-150 border border-white/[0.12]"
+                            >
+                                <Info size={13} />
+                                Chi tiết
+                            </Link>
                         </div>
 
-                        {/* Meta */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {movie.year && (
-                                <span className="text-[#a0a8b8] text-[12px] font-medium">{movie.year}</span>
-                            )}
+                        <div className="flex items-center gap-2 flex-wrap text-[12px] text-[#a0a8b8]">
+                            {movie.year && <span>{movie.year}</span>}
                             {movie.time > 0 && (
-                                <>
-                                    <span className="text-[#3a3f50] text-[12px]">·</span>
-                                    <span className="text-[#a0a8b8] text-[12px]">{formatTime(movie.time)}</span>
-                                </>
+                                <><span className="text-[#3a3f50]">·</span><span>{formatTime(movie.time)}</span></>
                             )}
                             {movie.lang && (
-                                <>
-                                    <span className="text-[#3a3f50] text-[12px]">·</span>
-                                    <span className="text-[#a0a8b8] text-[12px]">{movie.lang}</span>
-                                </>
+                                <><span className="text-[#3a3f50]">·</span><span>{movie.lang}</span></>
                             )}
                         </div>
 
-                        {/* Categories */}
                         {movie.category?.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
-                                {movie.category.slice(0, 3).map((cat) => (
+                                {movie.category.slice(0, 3).map(cat => (
                                     <span key={cat.id}
                                         className="px-2.5 py-1 text-[11px] font-medium text-[#a0a8b8] bg-white/[0.07] border border-white/[0.08] rounded-md">
                                         {cat.name}
@@ -212,5 +176,3 @@ function MovieCard({ movie }: MovieCardProps) {
         </div>
     );
 }
-
-export default memo(MovieCard);

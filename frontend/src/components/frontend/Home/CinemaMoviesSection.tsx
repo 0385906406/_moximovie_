@@ -4,6 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import { Link } from "react-router";
 import type { Movie } from "@/types/movie";
+import { MovieHoverPopup } from "@/components/frontend/MovieHoverPopup";
 
 // ── Skeleton landscape card ──
 function SkeletonCard() {
@@ -96,6 +97,7 @@ function CinemaMoviesSection() {
                             key={movie._id}
                             style={{ width: "clamp(180px, 48vw, 452px)" }}
                         >
+                            <MovieHoverPopup movie={movie}>
                             <div className="group cursor-pointer w-full">
 
                                 {/* ── THUMBNAIL LANDSCAPE ── */}
@@ -190,6 +192,7 @@ function CinemaMoviesSection() {
                                     </div>
                                 </div>
                             </div>
+                            </MovieHoverPopup>
                         </SwiperSlide>
                     ))}
                 </Swiper>

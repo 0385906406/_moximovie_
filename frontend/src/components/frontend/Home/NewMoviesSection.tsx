@@ -4,6 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import { Link } from "react-router";
 import type { Movie } from "@/types/movie";
+import { MovieHoverPopup } from "@/components/frontend/MovieHoverPopup";
 
 // ── Skeleton ──
 function SkeletonCard() {
@@ -91,63 +92,65 @@ function NewMoviesSection() {
                             key={movie._id}
                             style={{ width: "clamp(100px, 28vw, 210px)" }}
                         >
-                            <Link to={`/phim/${movie.slug}`}>
-                                <div className="group cursor-pointer w-full">
+                            <MovieHoverPopup movie={movie}>
+                                <Link to={`/phim/${movie.slug}`}>
+                                    <div className="group cursor-pointer w-full">
 
-                                    {/* ── POSTER ── */}
-                                    <div
-                                        className="relative w-full rounded-xl overflow-hidden"
-                                        style={{ aspectRatio: "2/3" }}
-                                    >
-                                        <img
-                                            src={`https://phimimg.com/${movie.poster_url}`}
-                                            alt={movie.name}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            loading="lazy"
-                                        />
+                                        {/* ── POSTER ── */}
+                                        <div
+                                            className="relative w-full rounded-xl overflow-hidden"
+                                            style={{ aspectRatio: "2/3" }}
+                                        >
+                                            <img
+                                                src={`https://phimimg.com/${movie.poster_url}`}
+                                                alt={movie.name}
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                loading="lazy"
+                                            />
 
-                                        {/* Gradient đáy */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                                            {/* Gradient đáy */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
 
-                                        {/* Hover overlay + play icon */}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                                            <div className="w-10 h-10 rounded-full bg-white/0 group-hover:bg-white/15 backdrop-blur-sm border border-white/0 group-hover:border-white/30 flex items-center justify-center transition-all duration-300 scale-75 group-hover:scale-100">
-                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-[1px]">
-                                                    <path d="M8 5.14v14l11-7-11-7z" />
-                                                </svg>
+                                            {/* Hover overlay + play icon */}
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                                                <div className="w-10 h-10 rounded-full bg-white/0 group-hover:bg-white/15 backdrop-blur-sm border border-white/0 group-hover:border-white/30 flex items-center justify-center transition-all duration-300 scale-75 group-hover:scale-100">
+                                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-[1px]">
+                                                        <path d="M8 5.14v14l11-7-11-7z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            {/* Quality + Time badges */}
+                                            <div className="absolute bottom-0 inset-x-0 p-1.5 sm:p-2.5">
+                                                <div className="flex items-center gap-1">
+                                                    {movie.quality && (
+                                                        <span className="flex-1 py-0.5 px-0.5 text-[7px] sm:text-[9px] font-bold rounded-md bg-green-500/30 border border-green-400/40 text-green-300 text-center backdrop-blur-sm truncate">
+                                                            {movie.quality}
+                                                        </span>
+                                                    )}
+                                                    {movie.time && (
+                                                        <span className="hidden sm:flex flex-1 py-0.5 px-0.5 text-[9px] font-medium rounded-md bg-white/10 border border-white/15 text-gray-300 text-center backdrop-blur-sm truncate justify-center">
+                                                            {movie.time}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Quality + Time badges */}
-                                        <div className="absolute bottom-0 inset-x-0 p-1.5 sm:p-2.5">
-                                            <div className="flex items-center gap-1">
-                                                {movie.quality && (
-                                                    <span className="flex-1 py-0.5 px-0.5 text-[7px] sm:text-[9px] font-bold rounded-md bg-green-500/30 border border-green-400/40 text-green-300 text-center backdrop-blur-sm truncate">
-                                                        {movie.quality}
-                                                    </span>
-                                                )}
-                                                {movie.time && (
-                                                    <span className="hidden sm:flex flex-1 py-0.5 px-0.5 text-[9px] font-medium rounded-md bg-white/10 border border-white/15 text-gray-300 text-center backdrop-blur-sm truncate justify-center">
-                                                        {movie.time}
-                                                    </span>
-                                                )}
-                                            </div>
+                                        {/* ── TITLE ── */}
+                                        <div className="mt-1.5 sm:mt-2.5 px-0.5 text-center">
+                                            <h3
+                                                className="text-[10px] sm:text-[12px] lg:text-[13px] text-white font-semibold truncate group-hover:text-green-300 transition-colors duration-300 leading-snug"
+                                                dangerouslySetInnerHTML={{ __html: movie.name ?? "" }}
+                                            />
+                                            <p
+                                                className="text-[8px] sm:text-[10px] text-gray-500 truncate mt-0.5"
+                                                dangerouslySetInnerHTML={{ __html: movie.origin_name ?? "" }}
+                                            />
                                         </div>
                                     </div>
-
-                                    {/* ── TITLE ── */}
-                                    <div className="mt-1.5 sm:mt-2.5 px-0.5 text-center">
-                                        <h3
-                                            className="text-[10px] sm:text-[12px] lg:text-[13px] text-white font-semibold truncate group-hover:text-green-300 transition-colors duration-300 leading-snug"
-                                            dangerouslySetInnerHTML={{ __html: movie.name ?? "" }}
-                                        />
-                                        <p
-                                            className="text-[8px] sm:text-[10px] text-gray-500 truncate mt-0.5"
-                                            dangerouslySetInnerHTML={{ __html: movie.origin_name ?? "" }}
-                                        />
-                                    </div>
-                                </div>
-                            </Link>
+                                </Link>
+                            </MovieHoverPopup>
                         </SwiperSlide>
                     ))}
                 </Swiper>
