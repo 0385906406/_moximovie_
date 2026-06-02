@@ -34,7 +34,7 @@ const DaheeFacebookAd = lazy(() => import("@/components/frontend/Ad/DaheeFaceboo
 const Tet2026InlineBanner = lazy(() => import("@/components/frontend/Ad/Tet2026InlineBanner"));
 const ChristmasInlineBanner = lazy(() => import("@/components/frontend/Ad/ChristmasInlineBanner"));
 
-const theme = import.meta.env.VITE_APP_ASSET_THEME || "Default";
+const theme = "Summer";
 
 /* ══════════════════════════════════════════════════════
    SKELETON — placeholder khi chưa hiện
