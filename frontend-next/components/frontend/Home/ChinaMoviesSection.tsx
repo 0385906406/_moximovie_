@@ -73,9 +73,10 @@ const SkeletonCard = ({ delay }: { delay: number }) => (
     </div>
 );
 
-function ChinaMoviesSection() {
-    const [movies, setMovies] = useState<Movie[]>([]);
-    const [loading, setLoading] = useState(true);
+interface CnProps { initialData?: Movie[] }
+function ChinaMoviesSection({ initialData }: CnProps) {
+    const [movies, setMovies] = useState<Movie[]>(initialData ?? []);
+    const [loading, setLoading] = useState(!initialData?.length);
     const [isBeginning, setIsBeginning] = useState(true);
     const [isEnd, setIsEnd] = useState(false);
     const swiperRef = useRef<SwiperType | null>(null);
@@ -91,11 +92,13 @@ function ChinaMoviesSection() {
     }, []);
 
     useEffect(() => {
+        if (initialData?.length) return;
         setLoading(true);
         movieService.dataChinaMovies()
             .then(setMovies)
             .catch(e => console.error("China movies fetch error:", e))
             .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handlePrev = () => swiperRef.current?.slidePrev();

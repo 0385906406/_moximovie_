@@ -28,10 +28,18 @@ function preloadImage(src: string) {
     img.src = src;
 }
 
-const Slider: React.FC = () => {
-    const [slides, setSlides]   = useState<Movie[]>([]);
+const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
+    const [slides, setSlides] = useState<Movie[]>(() => {
+        if (!initialData?.length) return [];
+        return initialData.map((m: Movie) => ({
+            ...m,
+            category: Array.isArray(m.category)
+                ? [...new Map(m.category.map((c: Category) => [c.id, c])).values()]
+                : [],
+        }));
+    });
     const [active, setActive]   = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!initialData?.length);
     const [paused, setPaused]   = useState(false);
     const [progKey, setProgKey] = useState(0);
     const [isLimitReached, setIsLimitReached] = useState(false);
@@ -40,6 +48,10 @@ const Slider: React.FC = () => {
 
     /* ── Fetch ── */
     useEffect(() => {
+        if (initialData?.length) {
+            slides.slice(0, 4).forEach(m => preloadImage(`https://phimimg.com/${m.thumb_url}`));
+            return;
+        }
         movieService.dataSlider()
             .then((data: Movie[]) => {
                 const mapped = data.map((m: Movie) => ({
@@ -55,6 +67,7 @@ const Slider: React.FC = () => {
             })
             .catch(e => console.error("Fetch slider error:", e))
             .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const goTo = useCallback((idx: number) => {

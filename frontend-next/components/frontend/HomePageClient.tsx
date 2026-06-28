@@ -1,0 +1,124 @@
+"use client";
+
+import { lazy, Suspense, useEffect, memo, useRef, useState } from "react";
+import SEO from "@/components/frontend/SEO";
+import type { Movie } from "@/types/movie";
+
+import Slider from "@/components/frontend/Slider";
+import KoreanMoviesSection from "@/components/frontend/Home/KoreanMoviesSection";
+import ChinaMoviesSection from "@/components/frontend/Home/ChinaMoviesSection";
+import VietNamMoviesSection from "@/components/frontend/Home/VietNamMoviesSection";
+import WibuMoviesSection from "@/components/frontend/Home/WibuMoviesSection";
+
+const CommingMoviesSection       = lazy(() => import("@/components/frontend/Home/CommingMoviesSection"));
+const MoviesInTheatersSection    = lazy(() => import("@/components/frontend/Home/MoviesInTheatersSection"));
+const NewMoviesSection           = lazy(() => import("@/components/frontend/Home/NewMoviesSection"));
+const TopTVSeriesSection         = lazy(() => import("@/components/frontend/Home/TopTVSeriesSection"));
+const CinemaMovieSection         = lazy(() => import("@/components/frontend/Home/CinemaMoviesSection"));
+const TopMoviesSection           = lazy(() => import("@/components/frontend/Home/TopMoviesSection"));
+const JapanMoviesSection         = lazy(() => import("@/components/frontend/Home/JapanMoviesSection"));
+const ThailandMoviesSection      = lazy(() => import("@/components/frontend/Home/ThailandMoviesSection"));
+const LatestAnimeCollectionSection = lazy(() => import("@/components/frontend/Home/LatestAnimeCollectionSection"));
+const HongKongMoviesSection      = lazy(() => import("@/components/frontend/Home/HongKongMoviesSection"));
+const GhostMoviesSection         = lazy(() => import("@/components/frontend/Home/GhostMoviesSection"));
+const BrainTeaserSection         = lazy(() => import("@/components/frontend/Home/BrainTeaserWithCriminalsMoviesSection"));
+
+const SectionSkeleton = memo(() => (
+    <div className="px-3 lg:px-5 xl:px-6 py-4">
+        <div className="h-5 w-40 rounded bg-white/5 mb-4 animate-pulse" />
+        <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 rounded-xl bg-white/5 animate-pulse"
+                    style={{ width: 200, height: 113, animationDelay: `${i * 60}ms` }} />
+            ))}
+        </div>
+    </div>
+));
+SectionSkeleton.displayName = "SectionSkeleton";
+
+interface LazySectionProps {
+    children: React.ReactNode;
+    rootMargin?: string;
+}
+const LazySection = memo(({ children, rootMargin = "400px" }: LazySectionProps) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el || visible) return;
+        const io = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) { setVisible(true); io.disconnect(); } },
+            { rootMargin }
+        );
+        io.observe(el);
+        return () => io.disconnect();
+    }, [visible, rootMargin]);
+
+    return (
+        <div ref={ref}>
+            {visible
+                ? <Suspense fallback={<SectionSkeleton />}>{children}</Suspense>
+                : <SectionSkeleton />
+            }
+        </div>
+    );
+});
+LazySection.displayName = "LazySection";
+
+export interface HomeInitialData {
+    slider: Movie[];
+    korean: Movie[];
+    china:  Movie[];
+    vietnam: Movie[];
+    wibu:   Movie[];
+}
+
+export default function HomePageClient({ initialData }: { initialData: HomeInitialData }) {
+    useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }, []);
+
+    return (
+        <>
+            <SEO
+                title="MoxiMovie – Xem Phim Mới | Phim Hay | Vietsub HD | Thuyết Minh"
+                description="MoxiMovie - Trang xem phim mới, phim hay Vietsub HD. Cập nhật hơn 10.000+ phim chiếu rạp, phim bộ, phim lẻ chất lượng cao mỗi ngày."
+                canonical="https://www.moximovie.click/phimhay"
+                type="website"
+            />
+
+            <Slider initialData={initialData.slider} />
+
+            <div className="mt-8 px-3 sm:px-5 xl:px-6">
+                <div style={{
+                    background: "linear-gradient(to bottom, #282b3a 0%, #282b3a 66%, #191B24 100%)",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                    borderBottom: "none",
+                    borderRadius: 16,
+                    borderBottomLeftRadius: 0,
+                    borderBottomRightRadius: 0,
+                    overflow: "hidden",
+                }}>
+                    <KoreanMoviesSection initialData={initialData.korean} />
+                    <ChinaMoviesSection  initialData={initialData.china} />
+                    <VietNamMoviesSection initialData={initialData.vietnam} />
+                    <WibuMoviesSection   initialData={initialData.wibu} />
+                </div>
+            </div>
+
+            <LazySection rootMargin="600px"><CommingMoviesSection /></LazySection>
+            <LazySection rootMargin="500px"><MoviesInTheatersSection /></LazySection>
+            <LazySection rootMargin="500px"><NewMoviesSection /></LazySection>
+            <LazySection rootMargin="500px"><TopTVSeriesSection /></LazySection>
+            <LazySection rootMargin="400px"><CinemaMovieSection /></LazySection>
+            <LazySection rootMargin="400px"><TopMoviesSection /></LazySection>
+            <LazySection rootMargin="400px"><JapanMoviesSection /></LazySection>
+            <LazySection rootMargin="400px"><ThailandMoviesSection /></LazySection>
+            <LazySection rootMargin="300px"><LatestAnimeCollectionSection /></LazySection>
+            <LazySection rootMargin="300px"><HongKongMoviesSection /></LazySection>
+            <LazySection rootMargin="300px"><GhostMoviesSection /></LazySection>
+            <LazySection rootMargin="300px"><BrainTeaserSection /></LazySection>
+        </>
+    );
+}

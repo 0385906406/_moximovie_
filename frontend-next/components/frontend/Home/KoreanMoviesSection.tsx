@@ -87,9 +87,10 @@ const SkeletonCard = ({ delay }: { delay: number }) => (
     </div>
 );
 
-function KoreanMoviesSection() {
-    const [movies, setMovies] = useState<Movie[]>([]);
-    const [loading, setLoading] = useState(true);
+interface KrProps { initialData?: Movie[] }
+function KoreanMoviesSection({ initialData }: KrProps) {
+    const [movies, setMovies] = useState<Movie[]>(initialData ?? []);
+    const [loading, setLoading] = useState(!initialData?.length);
     const [isBeginning, setIsBeginning] = useState(true);
     const [isEnd, setIsEnd] = useState(false);
     const swiperRef = useRef<SwiperType | null>(null);
@@ -105,11 +106,13 @@ function KoreanMoviesSection() {
     }, []);
 
     useEffect(() => {
+        if (initialData?.length) return;
         setLoading(true);
         movieService.dataKoreanMovies()
             .then(setMovies)
             .catch(e => console.error("Korean movies fetch error:", e))
             .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handlePrev = useCallback(() => swiperRef.current?.slidePrev(), []);

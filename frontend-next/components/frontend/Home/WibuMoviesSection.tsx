@@ -73,9 +73,10 @@ const SkeletonCard = ({ delay }: { delay: number }) => (
     </div>
 );
 
-function WibuMoviesSection() {
-    const [movies, setMovies] = useState<Movie[]>([]);
-    const [loading, setLoading] = useState(true);
+interface WbProps { initialData?: Movie[] }
+function WibuMoviesSection({ initialData }: WbProps) {
+    const [movies, setMovies] = useState<Movie[]>(initialData ?? []);
+    const [loading, setLoading] = useState(!initialData?.length);
     const [isBeginning, setIsBeginning] = useState(true);
     const [isEnd, setIsEnd] = useState(false);
     const swiperRef = useRef<SwiperType | null>(null);
@@ -91,11 +92,13 @@ function WibuMoviesSection() {
     }, []);
 
     useEffect(() => {
+        if (initialData?.length) return;
         setLoading(true);
         movieService.dataAnimeMovies()
             .then(setMovies)
             .catch(e => console.error("Anime movies fetch error:", e))
             .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handlePrev = () => swiperRef.current?.slidePrev();
