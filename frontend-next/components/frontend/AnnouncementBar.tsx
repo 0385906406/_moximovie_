@@ -118,7 +118,7 @@ export default function AnnouncementBar() {
                     display: flex;
                     align-items: center;
                     white-space: nowrap;
-                    animation: annScroll 70s linear infinite;
+                    animation: annScroll 240s linear infinite;
                     will-change: transform;
                 }
                 .ann-track:hover { animation-play-state: paused; }

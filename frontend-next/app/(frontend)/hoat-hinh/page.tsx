@@ -124,27 +124,17 @@ function PhimHoatHinhPage() {
 
             {/* ── PAGE HEADER ── */}
             <div
-                className="px-3 lg:px-5 xl:px-6 pt-4 pb-6"
+                className="px-3 lg:px-5 xl:px-6 pt-2 pb-5 flex items-center justify-between gap-3"
                 style={{ animation: "fadeSlideDown 0.5s ease both" }}
             >
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-2.5 mb-2">
-                            <div className="w-1 h-6 rounded-full bg-gradient-to-b from-orange-400 to-pink-600 shrink-0" />
-                            <span className="text-orange-400 text-xs font-bold tracking-widest uppercase">
-                                Hoạt Hình
-                            </span>
-                        </div>
-                        <h1 className="text-2xl sm:text-3xl font-black leading-tight">
-                            Phim Hoạt Hình Mới Nhất
-                        </h1>
-                        <p className="text-gray-500 text-sm mt-1">
-                            {totalMovies
-                                ? `${totalMovies.toLocaleString()} bộ phim · Trang ${pagination.current_page}/${pagination.last_page}`
-                                : `Trang ${pagination.current_page} / ${pagination.last_page}`}
-                        </p>
-                    </div>
-                </div>
+                <h1 className="text-xl sm:text-2xl font-bold leading-tight text-white">
+                    Hoạt Hình Mới Nhất
+                </h1>
+                {totalMovies ? (
+                    <span className="text-[12px] text-white/35 whitespace-nowrap shrink-0">
+                        {totalMovies.toLocaleString()} phim &middot; Trang {pagination.current_page}/{pagination.last_page}
+                    </span>
+                ) : null}
             </div>
 
             {/* ── SEARCH ── */}
