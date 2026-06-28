@@ -71,7 +71,7 @@ export const movieService = {
     dataTopTVSeries:  () => cached("top-tv",      () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10`).then(r => r.data?.data?.items || [])),
     dataTopNewMovies: () => cached("top-movies",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&page=2`).then(r => r.data?.data?.items || [])),
     dataCinemaMovies: () => cached("cinema",      () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-chieu-rap?sort_field=modified&sort_type=desc&limit=10`).then(r => r.data?.data?.items || [])),
-    dataAnimeMovies:  () => cached("anime",       () => axios.get(`${PHIM_API}/v1/api/danh-sach/hoat-hinh?sort_field=modified&sort_type=desc&limit=15&country=nhat-ban`).then(r => r.data?.data?.items || [])),
+    dataAnimeMovies:  () => cached("anime",       () => axios.get(`${PHIM_API}/v1/api/danh-sach/hoat-hinh?sort_field=modified&sort_type=desc&limit=10&country=nhat-ban`).then(r => r.data?.data?.items || [])),
     dataGhostMovies:  () => cached("ghost",       () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&category=kinh-di`).then(r => r.data?.data?.items || [])),
     dataBrainTeaserWithCriminalsMovies: () => cached("brainstormer", () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&category=hinh-su`).then(r => r.data?.data?.items || [])),
 
