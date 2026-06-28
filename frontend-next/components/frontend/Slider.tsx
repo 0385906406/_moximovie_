@@ -192,6 +192,17 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                     transition: width 400ms ease, background 400ms ease, border-color 400ms ease;
                 }
 
+                /* desktop thumbnail strip / mobile dots */
+                @media (max-width: 767px) { .sl-thumbs { display: none !important; } }
+                @media (min-width: 768px) { .sl-dots   { display: none !important; } }
+
+                .sl-thumb-btn {
+                    padding: 0; background: transparent; border: none; cursor: pointer;
+                    border-radius: 6px; overflow: hidden; outline: none; flex-shrink: 0;
+                    transition: transform 0.22s ease, box-shadow 0.22s ease;
+                }
+                .sl-thumb-btn:hover { transform: scale(1.09) !important; }
+
                 /* inner layout */
                 .sl-inner {
                     position: relative; z-index: 3; height: 100%;
@@ -499,8 +510,9 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                     })}
                 </div>
 
-                {/* Dot / pill tab indicators */}
+                {/* Mobile dots (hidden on desktop) */}
                 <div
+                    className="sl-dots"
                     role="tablist"
                     aria-label="Chọn slide"
                     style={{
@@ -531,6 +543,54 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                                     width:      i === active ? 28 : 10,
                                     background: i === active ? "#22d3a5" : "rgba(255,255,255,0.26)",
                                     border:     `1.5px solid ${i === active ? "#22d3a5" : "rgba(255,255,255,0.42)"}`,
+                                }}
+                            />
+                        </button>
+                    ))}
+                </div>
+
+                {/* Desktop thumbnail strip (hidden on mobile) */}
+                <div
+                    className="sl-thumbs"
+                    role="tablist"
+                    aria-label="Chọn slide"
+                    style={{
+                        position: "absolute",
+                        right: 32,
+                        bottom: 28,
+                        zIndex: 5,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                    }}
+                >
+                    {slides.map((s, i) => (
+                        <button
+                            key={s._id ?? i}
+                            type="button"
+                            role="tab"
+                            className="sl-thumb-btn"
+                            aria-selected={i === active}
+                            aria-label={s.name ?? `Slide ${i + 1}`}
+                            onClick={() => goTo(i)}
+                            style={{
+                                transform: i === active ? "scale(1.06)" : "scale(1)",
+                                boxShadow: i === active
+                                    ? "0 0 0 2px #22d3a5, 0 4px 14px rgba(34,211,165,0.45)"
+                                    : "0 0 0 1.5px rgba(255,255,255,0.12)",
+                            }}
+                        >
+                            <NextImage
+                                src={`https://phimimg.com/${s.thumb_url}`}
+                                alt={s.name ?? ""}
+                                width={72}
+                                height={40}
+                                style={{
+                                    objectFit: "cover",
+                                    display: "block",
+                                    borderRadius: 5,
+                                    opacity: i === active ? 1 : 0.52,
+                                    transition: "opacity 0.22s ease",
                                 }}
                             />
                         </button>
