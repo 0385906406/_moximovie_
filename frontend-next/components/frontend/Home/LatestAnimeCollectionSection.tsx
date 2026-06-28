@@ -44,7 +44,8 @@ const STYLES = `
   .as-ping { animation: asPing 1.6s ease-in-out infinite }
 
   .as-strip::-webkit-scrollbar { display:none }
-  .as-strip { -ms-overflow-style:none; scrollbar-width:none }
+  .as-strip { -ms-overflow-style:none; scrollbar-width:none; gap:6px }
+  @media (max-width: 767px) { .as-strip { gap:4px } }
 
   .as-thumb { transition: all 0.35s cubic-bezier(0.16,1,0.3,1) }
   .as-thumb:not(.active):hover { opacity:0.75!important; transform:translateY(-3px) scale(1.05)!important }
@@ -384,8 +385,8 @@ const LatestAnimeCollectionSection = () => {
                                     className="as-thumb relative flex-shrink-0 overflow-hidden cursor-pointer"
                                     style={{
                                         borderRadius: "5.28px",
-                                        width:     isActive ? "clamp(46px,5vw,64px)"  : "clamp(36px,4vw,52px)",
-                                        height:    isActive ? "clamp(66px,7.5vw,96px)" : "clamp(52px,6vw,78px)",
+                                        width:     isActive ? "clamp(30px,5vw,64px)"  : "clamp(22px,4vw,52px)",
+                                        height:    isActive ? "clamp(44px,7.5vw,96px)" : "clamp(32px,6vw,78px)",
                                         opacity:   isActive ? 1 : 0.45,
                                         alignSelf: "flex-end",
                                         boxShadow: isActive
