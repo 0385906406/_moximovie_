@@ -48,11 +48,11 @@ export const movieService = {
         };
     },
 
-    dataKoreanMovies:   () => cached("korean",    () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=han-quoc&year=2025`).then(r => r.data?.data?.items || [])),
-    dataChinaMovies:    () => cached("china",     () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=trung-quoc&year=2025`).then(r => r.data?.data?.items || [])),
-    dataVietNamMovies:  () => cached("vietnam",   () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=viet-nam&year=2025`).then(r => r.data?.data?.items || [])),
-    dataJapanMovies:    () => cached("japan",     () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=nhat-ban&year=2025`).then(r => r.data?.data?.items || [])),
-    dataThaiLandMovies: () => cached("thailand",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=thai-lan&year=2025`).then(r => r.data?.data?.items || [])),
+    dataKoreanMovies:   () => cached("korean",    () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=han-quoc`).then(r => r.data?.data?.items || [])),
+    dataChinaMovies:    () => cached("china",     () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=trung-quoc`).then(r => r.data?.data?.items || [])),
+    dataVietNamMovies:  () => cached("vietnam",   () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=viet-nam`).then(r => r.data?.data?.items || [])),
+    dataJapanMovies:    () => cached("japan",     () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=nhat-ban`).then(r => r.data?.data?.items || [])),
+    dataThaiLandMovies: () => cached("thailand",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=thai-lan`).then(r => r.data?.data?.items || [])),
     dataHongKongMovies: () => cached("hongkong",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&country=hong-kong`).then(r => r.data?.data?.items || [])),
 
     dataCommingMovies:    () => cached("coming",   () => axios.get(`${TMDB_API}/movie/upcoming?api_key=${TMDB_KEY}&language=vi-VN&region=VN&page=1`).then(r => r.data?.results || [])),
@@ -67,11 +67,11 @@ export const movieService = {
         return { detail: detail.data, credits: credits.data, videos: videos.data };
     }),
 
-    dataNewMovies:    () => cached("new-movies",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&year=2025`).then(r => r.data?.data?.items || [])),
-    dataTopTVSeries:  () => cached("top-tv",      () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10&year=2025`).then(r => r.data?.data?.items || [])),
-    dataTopNewMovies: () => cached("top-movies",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&page=2&year=2025`).then(r => r.data?.data?.items || [])),
-    dataCinemaMovies: () => cached("cinema",      () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-chieu-rap?sort_field=modified&sort_type=desc&limit=10&year=2025`).then(r => r.data?.data?.items || [])),
-    dataAnimeMovies:  () => cached("anime",       () => axios.get(`${PHIM_API}/v1/api/danh-sach/hoat-hinh?sort_field=modified&sort_type=desc&limit=15&country=nhat-ban&year=2025`).then(r => r.data?.data?.items || [])),
+    dataNewMovies:    () => cached("new-movies",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10`).then(r => r.data?.data?.items || [])),
+    dataTopTVSeries:  () => cached("top-tv",      () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=10`).then(r => r.data?.data?.items || [])),
+    dataTopNewMovies: () => cached("top-movies",  () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&page=2`).then(r => r.data?.data?.items || [])),
+    dataCinemaMovies: () => cached("cinema",      () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-chieu-rap?sort_field=modified&sort_type=desc&limit=10`).then(r => r.data?.data?.items || [])),
+    dataAnimeMovies:  () => cached("anime",       () => axios.get(`${PHIM_API}/v1/api/danh-sach/hoat-hinh?sort_field=modified&sort_type=desc&limit=15&country=nhat-ban`).then(r => r.data?.data?.items || [])),
     dataGhostMovies:  () => cached("ghost",       () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&category=kinh-di`).then(r => r.data?.data?.items || [])),
     dataBrainTeaserWithCriminalsMovies: () => cached("brainstormer", () => axios.get(`${PHIM_API}/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=10&category=hinh-su`).then(r => r.data?.data?.items || [])),
 
