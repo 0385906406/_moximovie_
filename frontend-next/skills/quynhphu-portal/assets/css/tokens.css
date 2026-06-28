@@ -1,0 +1,117 @@
+/* ============================================================
+   Cổng thông tin Quỳnh Phụ · Design Tokens (vanilla)
+   ------------------------------------------------------------
+   Dịch nguyên bản từ SATI v3.3.1 + v3.3.2 (sati-variables.css)
+   sang CSS thuần — KHÔNG React, KHÔNG Tailwind, KHÔNG next/font.
+   Fonts nạp qua Google Fonts <link> trong <head> mỗi trang.
+
+   ⚠️ MỌI component CHỈ dùng biến trong file này.
+      KHÔNG hard-code màu / spacing / radius ở nơi khác.
+   ============================================================ */
+
+:root {
+  /* ============ COLORS · 6 SOLIDS (cold base) ============ */
+  --color-navy:        #0F4C81;  /* Brand primary · heading */
+  --color-navy-deep:   #062340;  /* Text on light · BG dark */
+  --color-navy-pale:   #EAF1F8;  /* Hover BG · subtle section */
+  --color-navy-pale-2: #D6E3F0;  /* Divider trên navy-pale */
+
+  --color-teal:        #00A98F;  /* Accent · button outline */
+  --color-teal-light:  #34D4B8;  /* Hover · gradient stop */
+  --color-teal-dark:   #007D69;  /* Active · text on teal-pale */
+  --color-teal-pale:   #DEF5EE;  /* Tag BG · category badge BG */
+
+  --color-indigo:      #6366F1;  /* Decorative gradient · focus */
+  --color-indigo-light:#818CF8;  /* Hover */
+  --color-indigo-dark: #4338CA;  /* Link hover · brand mark */
+  --color-indigo-pale: #EEF0FE;  /* Subtle BG accent */
+
+  /* Pale Yellow — accent xa xỉ.
+     CHỈ dùng cho: line / divider / dot / indicator / border-hover.
+     TUYỆT ĐỐI KHÔNG fill button / card / box > 30px. */
+  --color-yellow:      #FCD34D;
+  --color-yellow-light:#FEF3C7;
+  --color-yellow-dark: #B45309;  /* Text trên gradient G4 */
+
+  --color-sky:         #F0F7FF;
+  --color-mint:        #E6F7F3;
+
+  /* ============ SYSTEM / NEUTRAL ============ */
+  --color-gray-light:  #F8F9FB;  /* Page BG · neutral surface */
+  --color-gray-border: #E5E8ED;  /* Border default */
+  --color-gray-text:   #334155;  /* Body text · AAA 9.5:1 on white */
+  --color-text:        #1A1F2E;  /* Primary text on light bg */
+
+  --color-error:       #DC2626;  /* Input invalid · destructive */
+  --color-success:     #16A34A;  /* Success state */
+  --color-warning:     #F59E0B;  /* Warning state */
+
+  /* Text trên nền tối (v3.3.0 opacity tokens) */
+  --on-dark-strong:  #FFFFFF;
+  --on-dark-body:    rgba(255, 255, 255, 0.88);
+  --on-dark-caption: rgba(255, 255, 255, 0.75);
+
+  /* ============ GRADIENTS · 4 BANDING-FREE ============ */
+  /* G1 — BG hero sáng / section overlay */
+  --gradient-g1: linear-gradient(135deg, #F0F7FF 0%, #F5FAFE 50%, #E6F7F3 100%);
+  /* G2 — Tab active underline 3px · BloomCard accent */
+  --gradient-g2: linear-gradient(135deg, #00A98F 0%, #318CCB 50%, #6366F1 100%);
+  /* G3 — Navy → Navy deep · stat card / section dark */
+  --gradient-g3: linear-gradient(135deg, #062340 0%, #0F4C81 100%);
+  /* G4 — Sky → Yellow · CHỈ badge ≤30px + tab indicator 3px */
+  --gradient-g4: linear-gradient(135deg, #F0F7FF 0%, #FEEFB8 60%, #FCD34D 100%);
+  /* Primary button fill (indigo) */
+  --gradient-primary: linear-gradient(135deg, #6366F1, #4338CA);
+
+  /* ============ TYPOGRAPHY ============
+     Ưu tiên biến do next/font/google đặt (vd --font-be-vietnam-pro);
+     fallback sang tên family literal nếu nạp qua <link> Google Fonts. */
+  --font-primary:    var(--font-be-vietnam-pro, 'Be Vietnam Pro'), 'Noto Sans', system-ui, sans-serif;
+  --font-mono-sans:  var(--font-space-grotesk, 'Space Grotesk'), sans-serif;
+  --font-serif:      var(--font-source-serif, 'Source Serif 4'), Georgia, serif;
+  --font-monospace:  var(--font-jetbrains-mono, 'JetBrains Mono'), monospace;
+
+  /* ============ RADIUS ============ */
+  --radius-sm:    6px;    /* Input · small button */
+  --radius-md:    8px;    /* Icon button · badge container */
+  --radius-card: 12px;    /* Card · frame */
+  --radius-lg:   16px;    /* Modal · large card */
+  --radius-pill:100px;    /* Pill button · badge */
+  --radius-full: 50%;     /* Avatar · dot */
+
+  /* ============ SPACING · 8-POINT SCALE ============ */
+  --space-2:   8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  --space-card-x:    24px;
+  --space-card-y:    26px;
+  --space-section-y: 48px;
+  --space-section-x: 48px;
+
+  /* ============ MOTION ============ */
+  --ease-soft:    cubic-bezier(0.2, 0.8, 0.2, 1);   /* Default soft enter */
+  --ease-pop:     cubic-bezier(0.5, 0, 0.5, 2);     /* Overshoot */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);     /* Material standard */
+  --duration-fast:    0.25s;
+  --duration-default: 0.35s;
+  --duration-slow:    0.5s;
+
+  /* ============ ELEVATION ============ */
+  --shadow-sm:   0 1px 2px rgba(6, 35, 64, 0.06);
+  --shadow-card: 0 4px 16px -6px rgba(6, 35, 64, 0.12);
+  --shadow-lift: 0 14px 32px -12px rgba(6, 35, 64, 0.22);
+  --shadow-cta:  0 14px 32px -10px rgba(99, 102, 241, 0.5);
+
+  /* ============ LAYOUT ============ */
+  --container-max:      1200px;
+  --container-wide-max: 1440px;
+  --topbar-height:      72px;
+}

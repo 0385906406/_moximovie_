@@ -1,0 +1,166 @@
+/* ============================================================
+   Cổng thông tin Quỳnh Phụ · Base (vanilla)
+   ------------------------------------------------------------
+   reset + container + 11 TYPE PRESET (lock) + grid + utilities.
+   Nạp SAU tokens.css, TRƯỚC components.css.
+   ============================================================ */
+
+/* -------- Reset -------- */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-gray-text);
+  background: var(--color-gray-light);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img, svg, video { display: block; max-width: 100%; }
+img { height: auto; }
+
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--color-indigo-dark); }
+
+button { font-family: inherit; }
+
+ul, ol { list-style: none; padding: 0; }
+
+h1, h2, h3, h4, h5, h6 { color: var(--color-navy-deep); font-weight: 700; }
+
+::selection { background: var(--color-teal-pale); color: var(--color-navy-deep); }
+
+/* -------- Focus visible · BẮT BUỘC 2px Indigo -------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-indigo);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   TYPE SCALE · 11 PRESETS · v3.3.0 LOCK
+   KHÔNG tạo class typography mới ngoài 11 preset này.
+   ============================================================ */
+.type-display-xl { font: 800 92px/0.88 var(--font-primary); letter-spacing: -3px; color: var(--color-navy-deep); }
+.type-display-l  { font: 800 56px/1.0  var(--font-primary); letter-spacing: -2px; color: var(--color-navy-deep); }
+.type-h1         { font: 700 40px/1.1  var(--font-primary); letter-spacing: -1.2px; color: var(--color-navy-deep); }
+.type-h2         { font: 700 28px/1.2  var(--font-primary); letter-spacing: -0.8px; color: var(--color-navy-deep); }
+.type-h3         { font: 700 20px/1.3  var(--font-primary); letter-spacing: -0.4px; color: var(--color-navy-deep); }
+.type-body-large { font: 400 16px/1.6  var(--font-primary); }
+.type-body       { font: 400 14px/1.65 var(--font-primary); }
+.type-body-small { font: 400 13px/1.65 var(--font-primary); }
+.type-caption    { font: 500 12px/1.5  var(--font-primary); color: var(--color-gray-text); }
+.type-tag        { font: 700 10px/1.4  var(--font-mono-sans); letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-teal-dark); }
+.type-kpi        { font: 700 32px/0.95 var(--font-mono-sans); letter-spacing: -1px; color: var(--color-navy); }
+.type-code       { font: 500 11px/1.5  var(--font-monospace); }
+
+/* Responsive display sizes — không tạo preset mới, chỉ co theo viewport */
+@media (max-width: 768px) {
+  .type-display-xl { font-size: 56px; letter-spacing: -2px; }
+  .type-display-l  { font-size: 40px; letter-spacing: -1.2px; }
+  .type-h1         { font-size: 30px; }
+  .type-h2         { font-size: 24px; }
+}
+
+/* ============================================================
+   LAYOUT CONTAINERS
+   ============================================================ */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+.container-wide {
+  width: 100%;
+  max-width: var(--container-wide-max);
+  margin-inline: auto;
+  padding-inline: 32px;
+}
+@media (max-width: 640px) {
+  .container, .container-wide { padding-inline: 16px; }
+}
+
+/* -------- Section rhythm -------- */
+.section { padding-block: var(--space-20); }
+.section--tight { padding-block: var(--space-12); }
+@media (max-width: 768px) {
+  .section { padding-block: var(--space-12); }
+  .section--tight { padding-block: var(--space-10); }
+}
+
+.section-header { margin-bottom: var(--space-8); }
+.section-header .type-tag { display: block; margin-bottom: var(--space-3); }
+.section-header .type-h2 + p { margin-top: var(--space-3); max-width: 640px; }
+
+.section-alt { background: var(--color-navy-pale); }
+
+/* ============================================================
+   GRID HELPERS (3→2→1 responsive)
+   ============================================================ */
+.grid { display: grid; gap: var(--space-6); }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 1024px) {
+  .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================
+   TEXT COLOR / SPACING UTILITIES (tối thiểu)
+   ============================================================ */
+.on-dark        { color: var(--on-dark-body); }
+.on-dark-strong { color: var(--on-dark-strong); }
+.on-dark-caption{ color: var(--on-dark-caption); }
+.text-navy  { color: var(--color-navy); }
+.text-teal  { color: var(--color-teal-dark); }
+.text-muted { color: var(--color-gray-text); }
+.text-center{ text-align: center; }
+
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mt-8 { margin-top: var(--space-8); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+
+.stack > * + * { margin-top: var(--space-4); }
+.row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+
+/* -------- Accessibility -------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute; left: 16px; top: -48px;
+  background: var(--color-navy); color: #fff;
+  padding: 10px 16px; border-radius: var(--radius-md);
+  z-index: 1000; transition: top var(--duration-fast) var(--ease-soft);
+}
+.skip-link:focus { top: 16px; color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 220" width="1200" height="220">
+<title>SATI Pattern 02 - Network Mesh</title>
+<defs>
+<radialGradient id="netBig"><stop offset="0%" stop-color="#6366F1" stop-opacity="0.9"/><stop offset="40%" stop-color="#6366F1" stop-opacity="0.45"/><stop offset="100%" stop-color="#6366F1" stop-opacity="0"/></radialGradient>
+<radialGradient id="netMid"><stop offset="0%" stop-color="#00A98F" stop-opacity="0.85"/><stop offset="40%" stop-color="#00A98F" stop-opacity="0.4"/><stop offset="100%" stop-color="#00A98F" stop-opacity="0"/></radialGradient>
+<radialGradient id="netY"><stop offset="0%" stop-color="#FCD34D" stop-opacity="0.95"/><stop offset="40%" stop-color="#FCD34D" stop-opacity="0.5"/><stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/></radialGradient>
+<radialGradient id="netBokeh"><stop offset="0%" stop-color="#6366F1" stop-opacity="0.16"/><stop offset="100%" stop-color="#6366F1" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="220" fill="#F5FAFE"/>
+<circle cx="180" cy="60" r="40" fill="url(#netBokeh)"/>
+<circle cx="400" cy="170" r="48" fill="url(#netBokeh)"/>
+<circle cx="900" cy="100" r="35" fill="url(#netBokeh)"/>
+<g stroke="#6366F1" stroke-width="0.6" stroke-opacity="0.45">
+<line x1="180" y1="60" x2="380" y2="100"/>
+<line x1="380" y1="100" x2="580" y2="60"/>
+<line x1="380" y1="100" x2="280" y2="170"/>
+<line x1="580" y1="60" x2="780" y2="120"/>
+<line x1="780" y1="120" x2="950" y2="60"/>
+<line x1="950" y1="60" x2="1100" y2="150"/>
+<line x1="780" y1="120" x2="1100" y2="150"/>
+<line x1="380" y1="100" x2="780" y2="120"/>
+<line x1="180" y1="60" x2="280" y2="170"/>
+</g>
+<circle cx="380" cy="100" r="16" fill="url(#netBig)"/><circle cx="380" cy="100" r="4.5" fill="#6366F1"/>
+<circle cx="780" cy="120" r="14" fill="url(#netBig)"/><circle cx="780" cy="120" r="4" fill="#6366F1"/>
+<circle cx="180" cy="60" r="11" fill="url(#netMid)"/><circle cx="180" cy="60" r="3.2" fill="#00A98F"/>
+<circle cx="580" cy="60" r="11" fill="url(#netMid)"/><circle cx="580" cy="60" r="3.2" fill="#00A98F"/>
+<circle cx="1100" cy="150" r="10" fill="url(#netMid)"/><circle cx="1100" cy="150" r="3" fill="#00A98F"/>
+<circle cx="950" cy="60" r="9" fill="url(#netY)"/><circle cx="950" cy="60" r="3" fill="#FCD34D"/>
+<circle cx="280" cy="170" r="3" fill="#0F4C81" opacity="0.7"/>
+</svg>
