@@ -56,15 +56,22 @@ export default function MovieSearch() {
     const fromCSV = (s: string | null) => s ? s.split(",").filter(Boolean) : [""];
 
     useEffect(() => {
-        if (pathname !== "/loc-phim") return;
-        const qType = searchParams.get("type_list");
-        setFilters({
-            country:  fromCSV(searchParams.get("country")),
-            category: fromCSV(searchParams.get("category")),
-            year:     fromCSV(searchParams.get("year")),
-            type:     qType !== null ? fromCSV(qType) : [PATH_TYPE_MAP[pathname] ?? ""],
-            versions: fromCSV(searchParams.get("versions")),
-        });
+        const pathType = PATH_TYPE_MAP[pathname];
+        if (pathname === "/loc-phim") {
+            const qType = searchParams.get("type_list");
+            setFilters({
+                country:  fromCSV(searchParams.get("country")),
+                category: fromCSV(searchParams.get("category")),
+                year:     fromCSV(searchParams.get("year")),
+                type:     qType !== null ? fromCSV(qType) : [""],
+                versions: fromCSV(searchParams.get("versions")),
+            });
+        } else if (pathType) {
+            // /phim-le, /phim-bo, /hoat-hinh → mặc định chọn đúng loại
+            setFilters({ country: [""], type: [pathType], category: [""], versions: [""], year: [""] });
+        } else {
+            setFilters({ country: [""], type: [""], category: [""], versions: [""], year: [""] });
+        }
     }, [pathname, searchParams]);
 
     const toggle = (key: keyof Filters, value: string) => {
