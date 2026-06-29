@@ -12,8 +12,6 @@ import SEO from "@/components/frontend/SEO";
 import type { Movie } from "@/types/movie";
 
 import { movieService } from "@/services/movieService";
-import DaheeFacebookAd from "@/components/frontend/Ad/DaheeFacebookAd";
-
 interface PaginationState {
     current_page: number;
     last_page: number;
@@ -178,8 +176,6 @@ function PhimHoatHinhPage() {
                     />
                 </div>
             )}
-
-            <DaheeFacebookAd />
 
             <style>{`
                 @keyframes fadeSlideDown {

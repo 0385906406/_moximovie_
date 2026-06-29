@@ -4,14 +4,10 @@ import Link from "next/link"
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 const theme = process.env.NEXT_PUBLIC_ASSET_THEME || 'Default';
-import { MenuIcon, Search, Clock, ChevronDown, UserCircle, X } from "lucide-react";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { MenuIcon, Search, ChevronDown, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-export type MovieMini = { slug: string; name: string; thumb_url?: string; year?: number; quality?: string };
-export const RECENT_KEY = "mxi_recent";
 
 import NavbarSidebar from "./NavbarSidebar";
 
@@ -53,13 +49,11 @@ const NAV_LINKS = [
 
 const Navbar = () => {
     const pathname = usePathname();
-    const user     = useAuthStore((s) => s.user);
     const logoPath = `/${theme}/logo.png`;
 
     const searchRef        = useRef<HTMLDivElement | null>(null);
     const categoryMenuRef  = useRef<HTMLDivElement | null>(null);
     const countriesMenuRef = useRef<HTMLDivElement | null>(null);
-    const userMenuRef      = useRef<HTMLDivElement | null>(null);
     const debounceTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
     const mobileDebounce   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -73,9 +67,6 @@ const Navbar = () => {
     const [isCountriesOpen,    setIsCountriesOpen]    = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isSidebarOpen,      setIsSidebarOpen]      = useState(false);
-    const [isUserMenuOpen,     setIsUserMenuOpen]     = useState(false);
-    const [userName,           setUserName]           = useState("");
-    const [recentMovies,       setRecentMovies]       = useState<MovieMini[]>([]);
 
     const router = useRouter();
 
@@ -86,18 +77,6 @@ const Navbar = () => {
         return () => window.removeEventListener("scroll", fn);
     }, []);
 
-    /* ── Load user data từ localStorage ── */
-    useEffect(() => {
-        setUserName(localStorage.getItem("mxi_uname") ?? "");
-        try { setRecentMovies(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")); } catch { }
-        const onStorage = () => {
-            setUserName(localStorage.getItem("mxi_uname") ?? "");
-            try { setRecentMovies(JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")); } catch { }
-        };
-        window.addEventListener("storage", onStorage);
-        return () => window.removeEventListener("storage", onStorage);
-    }, []);
-
     /* ── Khóa body scroll khi mobile search overlay mở ── */
     useEffect(() => {
         document.body.style.overflow = isMobileSearchOpen ? "hidden" : "";
@@ -106,17 +85,16 @@ const Navbar = () => {
 
     /* ── Click outside ── */
     useEffect(() => {
-        if (!isSearchOpen && !isCategoryOpen && !isCountriesOpen && !isUserMenuOpen) return;
+        if (!isSearchOpen && !isCategoryOpen && !isCountriesOpen) return;
         const fn = (e: MouseEvent) => {
             const t = e.target as Node;
             if (isSearchOpen    && searchRef.current        && !searchRef.current.contains(t))        setIsSearchOpen(false);
             if (isCategoryOpen  && categoryMenuRef.current  && !categoryMenuRef.current.contains(t))  setIsCategoryOpen(false);
             if (isCountriesOpen && countriesMenuRef.current && !countriesMenuRef.current.contains(t)) setIsCountriesOpen(false);
-            if (isUserMenuOpen  && userMenuRef.current      && !userMenuRef.current.contains(t))      setIsUserMenuOpen(false);
         };
         document.addEventListener("mousedown", fn);
         return () => document.removeEventListener("mousedown", fn);
-    }, [isSearchOpen, isCategoryOpen, isCountriesOpen, isUserMenuOpen]);
+    }, [isSearchOpen, isCategoryOpen, isCountriesOpen]);
 
     /* ── Debounce search desktop ── */
     useEffect(() => {
@@ -275,7 +253,7 @@ const Navbar = () => {
                     {/* ── Sidebar mobile ── */}
                     <NavbarSidebar
                         items={navbarItems}
-                        user={user}
+                        user={null}
                         open={isSidebarOpen}
                         onOpenChange={setIsSidebarOpen}
                     />
@@ -436,42 +414,6 @@ const Navbar = () => {
                                 </div>
                             )}
                         </div>
-                        {userName ? (
-                            <div ref={userMenuRef} className="relative">
-                                <button
-                                    onClick={() => setIsUserMenuOpen(p => !p)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-200 cursor-pointer",
-                                        isUserMenuOpen
-                                            ? "border-[#22d3a5]/40 bg-[#22d3a5]/10"
-                                            : "border-white/[0.1] bg-white/[0.05] hover:bg-white/[0.09] hover:border-white/[0.16]"
-                                    )}
-                                >
-                                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#22d3a5] to-[#38bdf8] flex items-center justify-center text-[11px] font-black text-black shrink-0">
-                                        {userName.trim()[0]?.toUpperCase()}
-                                    </div>
-                                    <span className="text-[13px] text-white/80 max-w-[100px] truncate">
-                                        {userName.trim().split(" ").pop()}
-                                    </span>
-                                    <ChevronDown size={12} className={cn("text-white/30 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
-                                </button>
-                                {isUserMenuOpen && (
-                                    <UserDropdown
-                                        userName={userName}
-                                        recentMovies={recentMovies}
-                                        onClose={() => setIsUserMenuOpen(false)}
-                                    />
-                                )}
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => router.push("/")}
-                                className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.1] bg-white/[0.05] hover:bg-white/[0.09] hover:border-white/[0.16] text-[13px] text-white/65 hover:text-white/90 transition-all duration-200 cursor-pointer"
-                            >
-                                <UserCircle size={14} className="text-white/40" />
-                                Đăng nhập
-                            </button>
-                        )}
                     </div>
 
                     {/* ── Mobile: search + menu ── */}
@@ -570,69 +512,5 @@ const Navbar = () => {
         </>
     );
 };
-
-/* ══════════════════════════════════════════════════════════
-   User Dropdown
-══════════════════════════════════════════════════════════ */
-function UserDropdown({ userName, recentMovies, onClose }: {
-    userName: string;
-    recentMovies: MovieMini[];
-    onClose: () => void;
-}) {
-    const initials = userName.trim().split(" ").map(w => w[0]).slice(-2).join("").toUpperCase();
-
-    const links = [
-        {
-            href: "/thong-tin?tab=thong-tin",
-            icon: <UserCircle size={14} className="text-[#22d3a5]" />,
-            label: "Thông tin",
-            count: null,
-        },
-        {
-            href: "/thong-tin?tab=xem-gan-day",
-            icon: <Clock size={14} className="text-amber-400" />,
-            label: "Xem gần đây",
-            count: recentMovies.length || null,
-        },
-    ];
-
-    return (
-        <div className="nb-dropdown absolute right-0 top-full mt-2.5 w-[230px] rounded-2xl border border-white/[0.08] bg-[#0a0d14]/98 backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,0.9)] z-50 overflow-hidden">
-            {/* Arrow */}
-            <div className="absolute -top-[6px] right-5 w-3 h-3 rotate-45 bg-[#0a0d14] border-l border-t border-white/[0.08]" />
-
-            {/* User header */}
-            <div className="px-4 py-3.5 bg-gradient-to-br from-[#22d3a5]/[0.07] to-[#38bdf8]/[0.03] border-b border-white/[0.06] flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#22d3a5] to-[#38bdf8] flex items-center justify-center text-[12px] font-black text-black shrink-0"
-                    style={{ boxShadow: "0 0 16px rgba(34,211,165,0.35)" }}>
-                    {initials}
-                </div>
-                <div className="overflow-hidden">
-                    <p className="text-white font-semibold text-[13px] leading-tight truncate">{userName.trim()}</p>
-                    <p className="text-white/30 text-[10px] mt-0.5">Thành viên MoxiMovie</p>
-                </div>
-            </div>
-
-            {/* Nav links */}
-            <div className="py-1.5">
-                {links.map(({ href, icon, label, count }) => (
-                    <Link key={href} href={href} onClick={onClose}
-                        className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.05] transition-colors group">
-                        <div className="flex items-center gap-2.5">
-                            {icon}
-                            <span className="text-[13px] text-white/65 group-hover:text-white/90 transition-colors">{label}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            {count !== null && (
-                                <span className="text-[10px] font-bold bg-white/[0.07] text-white/35 px-1.5 py-0.5 rounded-full">{count}</span>
-                            )}
-                            <ChevronDown size={11} className="text-white/20 -rotate-90" />
-                        </div>
-                    </Link>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 export default Navbar;

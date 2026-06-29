@@ -225,144 +225,6 @@ function GridOverlay() {
     return <div className="absolute inset-0 z-[3] pointer-events-none opacity-[0.022]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.6) 1px,transparent 1px)", backgroundSize: "80px 80px" }} />;
 }
 
-/* ── Vietnamese name validation ── */
-function isValidVietnameseName(value: string): boolean {
-    const trimmed = value.trim();
-    if (trimmed.length < 4) return false;
-    if (!/^[\p{L}\s]+$/u.test(trimmed)) return false;
-    return trimmed.split(/\s+/).filter(Boolean).length >= 2;
-}
-
-/* ══════════════════════════════════════
-   NAME MODAL
-══════════════════════════════════════ */
-function NameModal({ onConfirm, onClose }: { onConfirm: (name: string) => void; onClose: () => void }) {
-    const [name, setName] = useState("");
-    const [inputFocus, setInputFocus] = useState(false);
-    const [shake, setShake] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        setTimeout(() => inputRef.current?.focus(), 80);
-    }, []);
-
-    const handleConfirm = () => {
-        if (!isValidVietnameseName(name)) {
-            setShake(true);
-            setTimeout(() => setShake(false), 500);
-            return;
-        }
-        const trimmed = name.trim();
-        localStorage.setItem("mxi_uname", trimmed);
-        onConfirm(trimmed);
-    };
-
-    const handleKey = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") handleConfirm();
-        if (e.key === "Escape") onClose();
-    };
-
-    return (
-        /* Backdrop */
-        <div
-            className="fixed inset-0 z-[200] flex items-center justify-center px-4"
-            style={{ background: "rgba(6,8,16,0.85)", backdropFilter: "blur(12px)", animation: "modalFadeIn 0.22s ease forwards" }}
-            onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-        >
-            {/* Panel */}
-            <div
-                className="relative w-full max-w-sm rounded-2xl p-7 text-white"
-                style={{
-                    background: "linear-gradient(145deg, #141826, #0f1220)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(34,211,165,0.08)",
-                    animation: "modalSlideUp 0.28s cubic-bezier(.22,1,.36,1) forwards",
-                }}
-            >
-                {/* Close */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/8 transition-all"
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                </button>
-
-                {/* Icon */}
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 mx-auto"
-                    style={{ background: "rgba(34,211,165,0.1)", border: "1px solid rgba(34,211,165,0.2)" }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#22d3a5" strokeWidth="1.8" className="w-5 h-5">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                </div>
-
-                {/* Text */}
-                <h2 className="text-[17px] font-bold text-center mb-1">Bạn tên gì?</h2>
-                <p className="text-[12.5px] text-white/35 text-center mb-6">
-                    Nhập họ và tên để cá nhân hóa trải nghiệm xem phim
-                </p>
-
-                {/* Input */}
-                <div className={`relative mb-1.5 ${shake ? "shake" : ""}`}>
-                    <div className="absolute inset-0 rounded-xl pointer-events-none transition-all duration-300"
-                        style={{ boxShadow: inputFocus ? "0 0 0 1.5px rgba(34,211,165,0.55), 0 0 16px rgba(34,211,165,0.12)" : "0 0 0 1px rgba(255,255,255,0.08)" }} />
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[14px] h-[14px]"
-                            style={{ color: inputFocus ? "#22d3a5" : "rgba(255,255,255,0.25)", transition: "color 0.2s" }}>
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                        </svg>
-                    </div>
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        onKeyDown={handleKey}
-                        onFocus={() => setInputFocus(true)}
-                        onBlur={() => setInputFocus(false)}
-                        placeholder="VD: Nguyễn Văn An"
-                        maxLength={40}
-                        className="w-full bg-white/[0.05] text-white text-sm placeholder:text-white/22 rounded-xl pl-9 pr-4 py-2.5 outline-none"
-                    />
-                    {name && (
-                        <button onClick={() => setName("")}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/55 transition-colors text-xs">✕</button>
-                    )}
-                </div>
-
-                {/* Hint */}
-                <div className="h-4 mb-5">
-                    {name.trim().length > 0 && !isValidVietnameseName(name) && (
-                        <p className="text-red-400/60 text-[11px] text-center" style={{ animation: "fadeInScale 0.2s ease forwards" }}>
-                            Nhập đầy đủ họ và tên (VD: Nguyễn Văn An)
-                        </p>
-                    )}
-                </div>
-
-                {/* Confirm button */}
-                <button
-                    onClick={handleConfirm}
-                    className="w-full py-2.5 rounded-xl font-bold text-[13.5px] transition-all active:scale-[0.98] hover:brightness-110"
-                    style={{
-                        background: isValidVietnameseName(name)
-                            ? "linear-gradient(135deg,#22d3a5,#10b981)"
-                            : "rgba(255,255,255,0.06)",
-                        color: isValidVietnameseName(name) ? "#071a14" : "rgba(255,255,255,0.25)",
-                        boxShadow: isValidVietnameseName(name) ? "0 4px 20px rgba(34,211,165,0.25)" : "none",
-                        transition: "all 0.25s",
-                    }}
-                >
-                    {isValidVietnameseName(name)
-                        ? `Vào xem, ${name.trim().split(" ").pop()}!`
-                        : "Nhập tên để tiếp tục"}
-                </button>
-            </div>
-        </div>
-    );
-}
-
 /* ════════════════════════════════════════
    MAIN PAGE
 ════════════════════════════════════════ */
@@ -370,16 +232,12 @@ const HomeIntro: React.FC = () => {
     const logoPath = `/${theme}/logo.png`;
     const router = useRouter();
     const [entered, setEntered] = useState(false);
-    const [greeting, setGreeting] = useState("");
     const [btnHover, setBtnHover] = useState(false);
     const [ripple, setRipple] = useState(false);
-    const [showModal, setShowModal] = useState(false);
 
     const { text: typed, color: typedColor } = useCyclingTypewriter(entered);
 
     useEffect(() => {
-        const saved = localStorage.getItem("mxi_uname");
-        if (saved) setGreeting(saved);
         const t = setTimeout(() => setEntered(true), 120);
         return () => clearTimeout(t);
     }, []);
@@ -388,21 +246,6 @@ const HomeIntro: React.FC = () => {
         setRipple(true);
         setTimeout(() => router.push("/phimhay"), 340);
     }, [router]);
-
-    const handleCtaClick = useCallback(() => {
-        const saved = localStorage.getItem("mxi_uname");
-        if (saved) {
-            goToMovie();
-        } else {
-            setShowModal(true);
-        }
-    }, [goToMovie]);
-
-    const handleModalConfirm = useCallback((name: string) => {
-        setGreeting(name);
-        setShowModal(false);
-        goToMovie();
-    }, [goToMovie]);
 
     const anim = (delay: number) => ({
         opacity: entered ? 1 : 0,
@@ -418,13 +261,6 @@ const HomeIntro: React.FC = () => {
                 canonical="https://www.moximovie.click/"
                 type="website"
             />
-
-            {showModal && (
-                <NameModal
-                    onConfirm={handleModalConfirm}
-                    onClose={() => setShowModal(false)}
-                />
-            )}
 
             <div className="relative w-full min-h-screen overflow-hidden text-white select-none bg-[#060810]">
                 <img src="/home_background.webp" alt=""
@@ -508,7 +344,7 @@ const HomeIntro: React.FC = () => {
                                 )}
                                 {ripple && <span className="absolute inset-0 rounded-xl animate-ping bg-[#22d3a5]/30" />}
                                 <button
-                                    onClick={handleCtaClick}
+                                    onClick={goToMovie}
                                     onMouseEnter={() => setBtnHover(true)}
                                     onMouseLeave={() => setBtnHover(false)}
                                     className="relative inline-flex items-center gap-2.5 px-8 py-3 rounded-xl font-bold text-sm text-black overflow-hidden"
@@ -616,27 +452,6 @@ const HomeIntro: React.FC = () => {
                 @keyframes floatStat {
                     from { transform:translateY(0); }
                     to   { transform:translateY(-5px); }
-                }
-                @keyframes fadeInScale {
-                    from { opacity:0; transform:translateY(6px) scale(0.95); }
-                    to   { opacity:1; transform:translateY(0) scale(1); }
-                }
-                @keyframes modalFadeIn {
-                    from { opacity:0; }
-                    to   { opacity:1; }
-                }
-                @keyframes modalSlideUp {
-                    from { opacity:0; transform:translateY(20px) scale(0.96); }
-                    to   { opacity:1; transform:translateY(0) scale(1); }
-                }
-                .shake {
-                    animation: shakeInput 0.4s cubic-bezier(.36,.07,.19,.97) both;
-                }
-                @keyframes shakeInput {
-                    10%,90%  { transform:translateX(-2px); }
-                    20%,80%  { transform:translateX(4px); }
-                    30%,50%,70% { transform:translateX(-5px); }
-                    40%,60%  { transform:translateX(5px); }
                 }
             `}</style>
         </>
