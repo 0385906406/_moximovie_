@@ -8,7 +8,7 @@ import type { Movie } from "@/types/movie";
 import MovieCard from "@/components/frontend/MovieCard";
 import Pagination from "@/components/frontend/Pagination";
 import SEO from "@/components/frontend/SEO";
-import DaheeFacebookAd from "@/components/frontend/Ad/DaheeFacebookAd";
+
 
 /* ─── Skeleton ─── */
 function SkeletonCard() {
@@ -476,7 +476,6 @@ function SearchPage() {
                 )}
             </div>
 
-            <DaheeFacebookAd />
 
             <style>{`
                 .fade-down { animation: fadeDown 0.5s cubic-bezier(.22,1,.36,1) both; }
