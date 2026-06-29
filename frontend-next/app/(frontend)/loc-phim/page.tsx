@@ -12,7 +12,7 @@ import SEO from "@/components/frontend/SEO";
 import type { Movie } from "@/types/movie";
 
 import { movieService } from "@/services/movieService";
-import DaheeInlineAd from "@/components/frontend/Ad/DaheeInlineAd";
+
 
 interface PaginationData {
     current_page: number;
@@ -208,7 +208,6 @@ function LocPhimPage() {
                 </div>
             )}
 
-            <DaheeInlineAd />
 
             <style>{`
                 @keyframes fadeSlideDown {

@@ -12,7 +12,6 @@ import SEO from "@/components/frontend/SEO";
 import type { Movie } from "@/types/movie";
 
 import { movieService } from "@/services/movieService";
-import DaheeInlineAd from "@/components/frontend/Ad/DaheeInlineAd";
 
 interface PaginationState {
     current_page: number;
@@ -196,8 +195,6 @@ function PhimLePage() {
                     />
                 </div>
             )}
-
-            <DaheeInlineAd />
 
             <style>{`
                 @keyframes fadeSlideDown {
