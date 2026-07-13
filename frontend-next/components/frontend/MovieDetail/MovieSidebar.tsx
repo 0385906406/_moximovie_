@@ -23,7 +23,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
     const posterSrc = movie.poster_url
-        ? (movie.poster_url.startsWith("http") ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)
+        ? (movie.poster_url.startsWith("http") ? movie.poster_url : (movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`))
         : null;
 
     const isOngoing   = movie.type === "series" && movie.status === "ongoing";

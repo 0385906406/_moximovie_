@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 const theme = process.env.NEXT_PUBLIC_ASSET_THEME || 'Default';
-import { MenuIcon, Search, ChevronDown, X } from "lucide-react";
+import { MenuIcon, Search, ChevronDown, X, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,14 @@ const Navbar = () => {
     const [isCountriesOpen,    setIsCountriesOpen]    = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isSidebarOpen,      setIsSidebarOpen]      = useState(false);
+    const [searchHistory,      setSearchHistory]      = useState<string[]>([]);
+
+    useEffect(() => {
+        try {
+            const h = localStorage.getItem("search_history");
+            if (h) setSearchHistory(JSON.parse(h));
+        } catch {}
+    }, []);
 
     const router = useRouter();
 
@@ -134,8 +142,18 @@ const Navbar = () => {
         }
     };
 
+    const addHistory = (q: string) => {
+        if (!q.trim()) return;
+        setSearchHistory(prev => {
+            const next = [q.trim(), ...prev.filter(item => item !== q.trim())].slice(0, 5);
+            localStorage.setItem("search_history", JSON.stringify(next));
+            return next;
+        });
+    };
+
     const goToSearchPage = (q: string) => {
         if (!q.trim()) return;
+        addHistory(q);
         setIsSearchOpen(false);
         setIsMobileSearchOpen(false);
         router.push(`/tim-kiem?keyword=${encodeURIComponent(q.trim())}`);
@@ -148,7 +166,7 @@ const Navbar = () => {
             className="flex w-full items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] transition-colors cursor-pointer group"
         >
             <img
-                src={`https://phimimg.com/${item.poster_url}`}
+                src={(item.poster_url?.startsWith('http') ? item.poster_url : `https://phimimg.com/${item.poster_url}`)}
                 alt={item.name}
                 className="w-[44px] h-[60px] object-cover rounded-md flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity"
             />
@@ -367,7 +385,7 @@ const Navbar = () => {
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === "Enter") goToSearchPage(query); }}
-                                onFocus={() => { if (dataSearch.length > 0) setIsSearchOpen(true); }}
+                                onFocus={() => { if (dataSearch.length > 0 || (!query && searchHistory.length > 0)) setIsSearchOpen(true); }}
                                 className="nb-search-input w-full rounded-full border border-white/[0.1] bg-white/[0.06] pl-9 pr-9 py-2 text-[13px] text-white placeholder:text-white/30 outline-none transition-all duration-200 focus:border-[#22d3a5]/50 focus:bg-white/[0.08]"
                             />
                             {loading ? (
@@ -389,27 +407,62 @@ const Navbar = () => {
                             {/* Dropdown */}
                             {isSearchOpen && (
                                 <div className="nb-dropdown absolute right-0 left-auto mt-2 w-[340px] rounded-2xl border border-white/[0.08] bg-[#0a0d14]/96 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-xl max-h-[340px] overflow-y-auto text-white">
-                                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-                                        <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-                                            Kết quả &quot;{query}&quot;
-                                        </span>
-                                    </div>
-                                    {loading ? (
-                                        <div className="flex items-center justify-center py-8">
-                                            <ThreeDot variant="bounce" color="#22d3a5" size="small" text="" textColor="" />
-                                        </div>
-                                    ) : dataSearch.length > 0 ? (
-                                        <>
-                                            {dataSearch.map((item) => (
-                                                <SearchItem key={item._id} item={item}
-                                                    onClick={() => { setQuery(item.name); setIsSearchOpen(false); }} />
-                                            ))}
-                                            <ViewAllBtn q={query} />
-                                        </>
+                                    {!query ? (
+                                        searchHistory.length > 0 && (
+                                            <>
+                                                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
+                                                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+                                                        Lịch sử tìm kiếm
+                                                    </span>
+                                                    <button onClick={() => { setSearchHistory([]); localStorage.removeItem("search_history"); }} className="text-[10px] text-white/40 hover:text-white transition-colors">
+                                                        Xóa tất cả
+                                                    </button>
+                                                </div>
+                                                {searchHistory.map((h, i) => (
+                                                    <div key={i} className="flex items-center justify-between px-4 py-2 hover:bg-white/[0.05] group">
+                                                        <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => goToSearchPage(h)}>
+                                                            <Clock size={12} className="text-white/30" />
+                                                            <span className="text-[13px] text-white/80">{h}</span>
+                                                        </div>
+                                                        <button className="opacity-0 group-hover:opacity-100 p-1 text-white/30 hover:text-white transition-all"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const next = searchHistory.filter(x => x !== h);
+                                                                setSearchHistory(next);
+                                                                localStorage.setItem("search_history", JSON.stringify(next));
+                                                                if (next.length === 0) setIsSearchOpen(false);
+                                                            }}>
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )
                                     ) : (
-                                        <div className="px-4 py-6 text-[12px] text-white/35 text-center">
-                                            Không tìm thấy phim nào
-                                        </div>
+                                        <>
+                                            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
+                                                <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+                                                    Kết quả &quot;{query}&quot;
+                                                </span>
+                                            </div>
+                                            {loading ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <ThreeDot variant="bounce" color="#22d3a5" size="small" text="" textColor="" />
+                                                </div>
+                                            ) : dataSearch.length > 0 ? (
+                                                <>
+                                                    {dataSearch.map((item) => (
+                                                        <SearchItem key={item._id} item={item}
+                                                            onClick={() => { setQuery(item.name); setIsSearchOpen(false); addHistory(item.name); }} />
+                                                    ))}
+                                                    <ViewAllBtn q={query} />
+                                                </>
+                                            ) : (
+                                                <div className="px-4 py-6 text-[12px] text-white/35 text-center">
+                                                    Không tìm thấy phim nào
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -471,41 +524,77 @@ const Navbar = () => {
 
                     {/* Results */}
                     <div className="max-h-[60vh] overflow-y-auto overscroll-contain pb-4">
-                        <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06]">
-                            <span className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">
-                                {query ? `Kết quả "${query}"` : "Nhập để tìm kiếm"}
-                            </span>
-                            {query && (
-                                <button onClick={() => { setQuery(""); setDataSearch([]); }}
-                                    className="text-[11px] text-white/30 hover:text-white/60 transition-colors">
-                                    Xóa
-                                </button>
-                            )}
-                        </div>
-                        <div className="py-1">
-                            {loading ? (
-                                <div className="flex items-center justify-center py-10">
-                                    <ThreeDot variant="bounce" color="#22d3a5" size="small" text="" textColor="" />
+                        {!query && searchHistory.length > 0 ? (
+                            <>
+                                <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06]">
+                                    <span className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">
+                                        Lịch sử tìm kiếm
+                                    </span>
+                                    <button onClick={() => { setSearchHistory([]); localStorage.removeItem("search_history"); }}
+                                        className="text-[11px] text-white/30 hover:text-white/60 transition-colors">
+                                        Xóa tất cả
+                                    </button>
                                 </div>
-                            ) : dataSearch.length > 0 ? (
-                                <>
-                                    {dataSearch.map((item) => (
-                                        <SearchItem key={item._id} item={item}
-                                            onClick={() => {
-                                                setQuery(item.name);
-                                                setIsSearchOpen(false);
-                                                setIsMobileSearchOpen(false);
-                                            }}
-                                        />
+                                <div className="py-1">
+                                    {searchHistory.map((h, i) => (
+                                        <div key={i} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.05] group">
+                                            <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => goToSearchPage(h)}>
+                                                <Clock size={14} className="text-white/30" />
+                                                <span className="text-[13px] text-white/80">{h}</span>
+                                            </div>
+                                            <button className="p-1 text-white/30 hover:text-white transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const next = searchHistory.filter(x => x !== h);
+                                                    setSearchHistory(next);
+                                                    localStorage.setItem("search_history", JSON.stringify(next));
+                                                }}>
+                                                <X size={14} />
+                                            </button>
+                                        </div>
                                     ))}
-                                    <ViewAllBtn q={query} />
-                                </>
-                            ) : query ? (
-                                <div className="px-4 py-6 text-[12px] text-white/35 text-center">
-                                    Không tìm thấy phim nào
                                 </div>
-                            ) : null}
-                        </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06]">
+                                    <span className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">
+                                        {query ? `Kết quả "${query}"` : "Nhập để tìm kiếm"}
+                                    </span>
+                                    {query && (
+                                        <button onClick={() => { setQuery(""); setDataSearch([]); }}
+                                            className="text-[11px] text-white/30 hover:text-white/60 transition-colors">
+                                            Xóa
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="py-1">
+                                    {loading ? (
+                                        <div className="flex items-center justify-center py-10">
+                                            <ThreeDot variant="bounce" color="#22d3a5" size="small" text="" textColor="" />
+                                        </div>
+                                    ) : dataSearch.length > 0 ? (
+                                        <>
+                                            {dataSearch.map((item) => (
+                                                <SearchItem key={item._id} item={item}
+                                                    onClick={() => {
+                                                        setQuery(item.name);
+                                                        setIsSearchOpen(false);
+                                                        setIsMobileSearchOpen(false);
+                                                        addHistory(item.name);
+                                                    }}
+                                                />
+                                            ))}
+                                            <ViewAllBtn q={query} />
+                                        </>
+                                    ) : query ? (
+                                        <div className="px-4 py-6 text-[12px] text-white/35 text-center">
+                                            Không tìm thấy phim nào
+                                        </div>
+                                    ) : null}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

@@ -233,7 +233,7 @@ function KoreanMoviesSection({ initialData }: KrProps) {
                                     <Link href={`/phim/${movie.slug}`} style={{ display: "block" }}>
                                         <div className="movie-card relative rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
                                             <Image
-                                                src={`https://phimimg.com/${movie.thumb_url}`}
+                                                src={(movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)}
                                                 alt={movie.name ?? ""} loading="lazy"
                                                 fill
                                                 sizes="(max-width: 640px) 45vw, 220px"

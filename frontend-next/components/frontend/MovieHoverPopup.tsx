@@ -20,8 +20,8 @@ function formatTime(minutes: number) {
 }
 
 export function MovieHoverPopup({ movie, children }: Props) {
-    const thumb = movie.thumb_url ? `https://phimimg.com/${movie.thumb_url}`
-                : movie.poster_url ? `https://phimimg.com/${movie.poster_url}` : "";
+    const thumb = movie.thumb_url ? (movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)
+                : movie.poster_url ? (movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`) : "";
 
     const wrapRef    = useRef<HTMLDivElement>(null);
     const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

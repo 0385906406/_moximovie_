@@ -97,7 +97,7 @@ function ThailandMoviesSection() {
                                         {/* POSTER */}
                                         <div className="movie-card relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "2/3" }}>
                                             <Image
-                                                src={`https://phimimg.com/${movie.poster_url}`}
+                                                src={(movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)}
                                                 alt={movie.name}
                                                 fill
                                                 sizes="(max-width: 640px) 30vw, 200px"

@@ -181,11 +181,11 @@ const LatestAnimeCollectionSection = () => {
                 {/* BG images */}
                 {prevSlide && (
                     <div key={`p-${prevIdx}`} className={`absolute inset-0 ${outCls}`}>
-                        <BgImage src={`https://phimimg.com/${prevSlide.thumb_url}`} alt="" />
+                        <BgImage src={(prevSlide.thumb_url?.startsWith('http') ? prevSlide.thumb_url : `https://phimimg.com/${prevSlide.thumb_url}`)} alt="" />
                     </div>
                 )}
                 <div key={`c-${current}`} className={`absolute inset-0 ${isAnimating ? inCls : ""}`}>
-                    <BgImage src={`https://phimimg.com/${slide.thumb_url}`} alt={slide.name ?? ""} />
+                    <BgImage src={(slide.thumb_url?.startsWith('http') ? slide.thumb_url : `https://phimimg.com/${slide.thumb_url}`)} alt={slide.name ?? ""} />
                 </div>
 
                 {/* Gradient overlays */}
@@ -396,7 +396,7 @@ const LatestAnimeCollectionSection = () => {
                                     }}
                                 >
                                     <Image
-                                        src={`https://phimimg.com/${item.poster_url || item.thumb_url}`}
+                                        src={(item.poster_url || item.thumb_url?.startsWith('http') ? item.poster_url || item.thumb_url : `https://phimimg.com/${item.poster_url || item.thumb_url}`)}
                                         alt={item.name ?? ""} loading="lazy"
                                         fill
                                         sizes="(max-width: 640px) 8vw, 64px"

@@ -49,7 +49,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
     /* ── Fetch ── */
     useEffect(() => {
         if (initialData?.length) {
-            slides.slice(0, 4).forEach(m => preloadImage(`https://phimimg.com/${m.thumb_url}`));
+            slides.slice(0, 4).forEach(m => preloadImage((m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`)));
             return;
         }
         movieService.dataSlider()
@@ -62,7 +62,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                 }));
                 setSlides(mapped);
                 mapped.slice(0, 4).forEach(m =>
-                    preloadImage(`https://phimimg.com/${m.thumb_url}`)
+                    preloadImage((m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`))
                 );
             })
             .catch(e => console.error("Fetch slider error:", e))
@@ -90,7 +90,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
     /* ── Preload next ── */
     useEffect(() => {
         if (!slides.length) return;
-        preloadImage(`https://phimimg.com/${slides[(active + 1) % slides.length].thumb_url}`);
+        preloadImage((slides[(active + 1) % slides.length].thumb_url?.startsWith('http') ? slides[(active + 1) % slides.length].thumb_url : `https://phimimg.com/${slides[(active + 1) % slides.length].thumb_url}`));
     }, [active, slides]);
 
     /* ── Keyboard ── */
@@ -330,7 +330,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                             >
                                 {/* Background image */}
                                 <NextImage
-                                    src={`https://phimimg.com/${slide.thumb_url}`}
+                                    src={(slide.thumb_url?.startsWith('http') ? slide.thumb_url : `https://phimimg.com/${slide.thumb_url}`)}
                                     alt={slide.name ?? ""}
                                     fill
                                     sizes="100vw"
@@ -581,7 +581,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                             }}
                         >
                             <NextImage
-                                src={`https://phimimg.com/${s.thumb_url}`}
+                                src={(s.thumb_url?.startsWith('http') ? s.thumb_url : `https://phimimg.com/${s.thumb_url}`)}
                                 alt={s.name ?? ""}
                                 width={72}
                                 height={40}

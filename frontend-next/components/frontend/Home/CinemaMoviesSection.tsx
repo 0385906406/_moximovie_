@@ -107,7 +107,7 @@ function CinemaMoviesSection() {
                                         style={{ aspectRatio: "16/7" }}
                                     >
                                         <Image
-                                            src={`https://phimimg.com/${movie.thumb_url}`}
+                                            src={(movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)}
                                             alt={movie.name}
                                             fill
                                             sizes="(max-width: 640px) 90vw, (max-width: 1280px) 60vw, 800px"
@@ -153,7 +153,7 @@ function CinemaMoviesSection() {
                                     <Link href={`/phim/${movie.slug}`} className="hidden lg:block shrink-0">
                                         <div className="w-16 xl:w-20 rounded-xl overflow-hidden shadow-xl -mt-10 xl:-mt-12 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-105">
                                             <Image
-                                                src={`https://phimimg.com/${movie.poster_url}`}
+                                                src={(movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)}
                                                 alt={movie.name}
                                                 width={80}
                                                 height={120}

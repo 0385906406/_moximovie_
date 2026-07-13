@@ -60,8 +60,13 @@ function qualityStyle(q?: string): { bg: string; color: string } {
    MOVIE CARD
 ══════════════════════════════════ */
 function MovieCard({ movie }: { movie: Movie }) {
-    const poster = movie.poster_url ? `https://phimimg.com/${movie.poster_url}` : "";
-    const thumb  = movie.thumb_url  ? `https://phimimg.com/${movie.thumb_url}`  : poster;
+    const getImg = (url?: string) => {
+        if (!url) return "";
+        if (url.startsWith("http")) return url;
+        return (url?.startsWith('http') ? url : `https://phimimg.com/${url}`);
+    };
+    const poster = getImg(movie.poster_url);
+    const thumb  = movie.thumb_url ? getImg(movie.thumb_url) : poster;
 
     const wrapRef    = useRef<HTMLDivElement>(null);
     const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
