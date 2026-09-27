@@ -30,6 +30,8 @@ export interface Movie {
     movie: "single" | "series";
     type: "single" | "series";
     status: "ongoing" | "completed" | "upcoming";
+    /* Mã phim bên TMDB do phimapi trả kèm — dùng để lấy diễn viên, trailer, phim tương tự */
+    tmdb?: { id?: string | number; type?: "movie" | "tv" | string; season?: number | null; vote_average?: number; vote_count?: number };
     createdAt: string;
     updatedAt: string;
 }

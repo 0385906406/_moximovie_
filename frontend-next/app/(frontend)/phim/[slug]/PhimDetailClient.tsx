@@ -32,6 +32,8 @@ import MovieSidebar from "@/components/frontend/MovieDetail/MovieSidebar";
 import MovieHero from "@/components/frontend/MovieDetail/MovieHero";
 import { useLocalWatched } from "@/hooks/useLocalWatched";
 import MovieImage from "@/components/frontend/MovieImage";
+import MovieTmdbExtras from "@/components/frontend/MovieDetail/MovieTmdbExtras";
+import type { TmdbExtras } from "@/lib/tmdb";
 
 // ── helper ──
 // const safeMovieObject = (m: Movie | null) => {
@@ -333,6 +335,7 @@ export interface PhimDetailInitialData {
     slug: string;
     movie: Movie | null;
     episodes: Server[];
+    tmdb?: TmdbExtras | null;
 }
 
 /* initialData tải sẵn trên server (page.tsx) → HTML có nội dung phim ngay, không chờ JS gọi API.
@@ -868,6 +871,13 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                                         onPlayEpisode={handlePlay}
                                         isEpisodeWatched={isEpisodeWatched}
                                     />
+                                </div>
+                            )}
+
+                            {/* ── Điểm, trailer, diễn viên, phim tương tự (TMDB) ── */}
+                            {movie && initialData?.tmdb && initialData.slug === slug && (
+                                <div style={{ position: "relative", zIndex: 10 }}>
+                                    <MovieTmdbExtras data={initialData.tmdb} />
                                 </div>
                             )}
 

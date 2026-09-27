@@ -556,7 +556,7 @@ function XemPhimClient() {
 
                                 {/* Description */}
                                 {movie.content && (
-                                    <p className="text-[12px] mt-4 leading-relaxed line-clamp-3"
+                                    <div className="text-[12px] mt-4 leading-relaxed line-clamp-3"
                                         style={{ color: "rgba(255,255,255,0.38)" }}
                                         dangerouslySetInnerHTML={{ __html: movie.content }} />
                                 )}

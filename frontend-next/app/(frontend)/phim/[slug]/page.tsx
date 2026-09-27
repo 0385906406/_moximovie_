@@ -1,4 +1,5 @@
 import PhimDetailClient, { type PhimDetailInitialData } from "./PhimDetailClient";
+import { getTmdbExtras } from "@/lib/tmdb";
 
 export const revalidate = 300;
 
@@ -14,7 +15,9 @@ async function getMovie(slug: string): Promise<PhimDetailInitialData | null> {
         if (!res.ok) return null;
         const json = await res.json();
         if (!json?.movie) return null;
-        return { slug, movie: json.movie, episodes: json.episodes ?? [] };
+        /* TMDB lỗi/chậm thì trang vẫn hiện bình thường, chỉ thiếu phần diễn viên/trailer */
+        const tmdb = await getTmdbExtras(json.movie.tmdb);
+        return { slug, movie: json.movie, episodes: json.episodes ?? [], tmdb };
     } catch {
         return null;
     }

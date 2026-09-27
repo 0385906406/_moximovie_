@@ -155,7 +155,8 @@ const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
                     <p className="text-[10.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>
                         Nội dung
                     </p>
-                    <p
+                    {/* div, không dùng p: nội dung từ API đã có sẵn thẻ <p>, p lồng p là HTML sai → lỗi hydration */}
+                    <div
                         className="text-[13px] leading-relaxed line-clamp-6 pb-4"
                         style={{ color: "rgba(255,255,255,0.6)" }}
                         dangerouslySetInnerHTML={{ __html: movie.content ?? "" }}

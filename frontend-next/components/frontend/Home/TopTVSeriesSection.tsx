@@ -105,7 +105,8 @@ function TopTVSeriesSection() {
                                         className={`movie-card poster-mask relative w-full overflow-hidden rounded-xl ${i % 2 !== 0 ? "scale-x-[-1]" : ""}`}
                                         style={{ aspectRatio: "2/3" }}
                                     >
-                                        {/* Ảnh — không cần lật riêng vì wrapper đã lật */}
+                                        {/* Ảnh — counter-lật: khung lật để tạo hình so le, ảnh phải giữ đúng chiều
+                                            (hover zoom dùng thuộc tính scale riêng của Tailwind v4 nên không đè transform này) */}
                                         <MovieImage
                                             movie={movie} prefer="poster"
                                             alt={movie.name}
@@ -113,6 +114,7 @@ function TopTVSeriesSection() {
                                             sizes="(max-width: 640px) 30vw, 200px"
                                             quality={70}
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                            style={i % 2 !== 0 ? { transform: "scaleX(-1)" } : undefined}
                                             loading="lazy"
                                         />
 
