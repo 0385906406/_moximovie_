@@ -5,6 +5,7 @@ import Hls from "hls.js";
 import type { Segment } from "@/types/segment";
 import type { HlsPlayerProps } from "@/types/hlsPlayerProps";
 import PlayerControls, { AUTOPLAY_FLAG } from "./PlayerControls";
+import PlayerCurtain, { CURTAIN_OPEN_MS } from "./PlayerCurtain";
 
 const AMBIENT_KEY = "player-ambient";
 
@@ -35,6 +36,20 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
     const [overlayHidden,    setOverlayHidden]    = useState(false);
     const [resumeFrom,       setResumeFrom]       = useState<number | null>(null);
     const dismissResume = useCallback(() => setResumeFrom(null), []);
+
+    /* Rèm: closed (chờ) → opening (đang kéo, video đã phát phía sau) → open (gỡ rèm) */
+    const [curtain, setCurtain] = useState<"closed" | "opening" | "open">("closed");
+    const curtainTimer = useRef(0);
+    const openCurtain = useCallback(() => {
+        setCurtain("opening");
+        clearTimeout(curtainTimer.current);
+        curtainTimer.current = window.setTimeout(() => setCurtain("open"), CURTAIN_OPEN_MS);
+    }, []);
+    const closeCurtain = useCallback(() => {
+        clearTimeout(curtainTimer.current);
+        setCurtain("closed");
+    }, []);
+    useEffect(() => () => clearTimeout(curtainTimer.current), []);
 
     /* Ambient: ánh màu của video toả ra quanh khung phát (chỉ máy tính, tốn GPU) */
     const [ambientOk, setAmbientOk] = useState(false);
@@ -103,6 +118,7 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
         setLoading(true);
         setError(null);
         setOverlayHidden(false);
+        closeCurtain();
         setResumeFrom(null);
         setVariantLevels([]);
         setSelectedVariant(0);
@@ -214,7 +230,8 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
             if (autoStart.current) {
                 autoStart.current = false;
                 setOverlayHidden(true);
-                video.play().catch(() => setOverlayHidden(false));
+                openCurtain();
+                video.play().catch(() => { setOverlayHidden(false); closeCurtain(); });
             }
             const saved = localStorage.getItem(PROG_KEY);
             if (!saved || !video) return;
@@ -318,62 +335,19 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
                 />
             )}
 
-            {/* ── Play overlay ── */}
-            {!overlayHidden && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center">
-                    {poster && (
-                        <img src={poster} alt=""
-                            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-                            style={{ filter: "blur(28px) brightness(0.3) saturate(1.2)", transform: "scale(1.08)" }}
-                        />
-                    )}
-                    <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.45)" }} />
-
-                    <button
-                        className="relative z-10 group flex flex-col items-center gap-4"
-                        onClick={() => {
-                            setOverlayHidden(true);
-                            videoRef.current?.play().catch(() => {});
-                        }}
-                    >
-                        <div className="relative flex items-center justify-center">
-                            <span className="absolute w-28 h-28 rounded-full border border-[#22d3a5]/20 animate-ping" style={{ animationDuration: "2s" }} />
-                            <span className="absolute w-20 h-20 rounded-full border border-[#22d3a5]/30" />
-                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                                style={{
-                                    background: "linear-gradient(135deg,#22d3a5,#0fb489)",
-                                    boxShadow: "0 0 40px rgba(34,211,165,0.45), 0 8px 32px rgba(0,0,0,0.5)",
-                                }}>
-                                {loading ? (
-                                    <svg className="w-7 h-7 text-[#041a11] animate-spin" viewBox="0 0 24 24" fill="none">
-                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
-                                        <path d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" fill="currentColor" />
-                                    </svg>
-                                ) : (
-                                    <svg className="w-7 h-7 sm:w-8 sm:h-8 text-[#041a11] translate-x-[2px]" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M8 5.14v14l11-7-11-7z" />
-                                    </svg>
-                                )}
-                            </div>
-                        </div>
-                        <span className="relative text-sm text-white/65 font-medium tracking-widest uppercase select-none"
-                            style={{ letterSpacing: "0.2em" }}>
-                            {loading ? "Đang tải…" : "Nhấn để xem phim"}
-                        </span>
-                    </button>
-
-                    {/* Tên phim + tập ở góc dưới màn hình chờ */}
-                    {title && (
-                        <div className="pc-start-title absolute left-4 right-4 sm:left-6 bottom-4 sm:bottom-6 z-10 pointer-events-none">
-                            {subtitle && (
-                                <span className="inline-block mb-1.5 px-2 py-0.5 rounded-md bg-[#22d3a5]/15 border border-[#22d3a5]/30 text-[#22d3a5] text-[10.5px] font-bold tracking-wide">
-                                    {subtitle}
-                                </span>
-                            )}
-                            <p className="text-white font-extrabold text-[15px] sm:text-xl truncate drop-shadow-lg" dangerouslySetInnerHTML={{ __html: title }} />
-                        </div>
-                    )}
-                </div>
+            {/* ── Rèm sân khấu: khép lúc chờ, bấm phát thì kéo rèm (PlayerCurtain.tsx) ── */}
+            {curtain !== "open" && (
+                <PlayerCurtain
+                    state={curtain}
+                    title={title}
+                    subtitle={subtitle}
+                    loading={loading}
+                    onPlay={() => {
+                        setOverlayHidden(true);
+                        openCurtain();
+                        videoRef.current?.play().catch(() => {});
+                    }}
+                />
             )}
 
             {/* ── Error ── */}
@@ -400,8 +374,6 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
                     to   { opacity:1; transform:none; }
                 }
                 .pc-root:fullscreen { border-radius: 0 !important; }
-                .pc-start-title { animation: pcStartIn .6s cubic-bezier(.16,1,.3,1) .1s both; }
-                @keyframes pcStartIn { from { opacity: 0; transform: translateY(12px); } }
             `}</style>
         </div>
         </div>

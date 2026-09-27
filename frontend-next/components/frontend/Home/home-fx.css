@@ -1,0 +1,82 @@
+/* Hiệu ứng trang /phimhay — đi kèm components/frontend/Home/HomeFx.tsx */
+
+/* ── Thanh tiến trình cuộn ── */
+.fx-progress {
+  background: linear-gradient(90deg, #10b981, #22d3a5 50%, #38bdf8);
+  box-shadow: 0 0 10px rgba(34, 211, 165, 0.7);
+}
+
+/* ── Nền: mảng màu trôi chậm ── */
+.fx-ambient > span {
+  position: absolute;
+  border-radius: 50%;
+  animation: fxDrift ease-in-out infinite alternate;
+}
+@keyframes fxDrift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(90px, 60px) scale(1.15); }
+}
+
+/* ── Card nghiêng 3D + vệt sáng (chỉ card đang rê có .fx-tilt) ── */
+.movie-card {
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.movie-card.fx-tilt {
+  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.12s linear;
+}
+.movie-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 0%), rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06) 35%, transparent 60%);
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.movie-card.fx-tilt::before { opacity: 1; }
+
+/* ── Đèn rọi theo chuột trên khối có [data-spotlight] ── */
+/* isolation + z-index -1: đèn nằm trên nền khối nhưng dưới nội dung, không phủ màu lên poster */
+[data-spotlight] { position: relative; isolation: isolate; }
+[data-spotlight]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(520px circle at var(--sx, 50%) var(--sy, 50%), rgba(34, 211, 165, 0.09), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+[data-spotlight].fx-lit::before { opacity: 1; }
+
+/* ── Đường sáng chạy ngang khi 1 section hiện ra ── */
+.fx-reveal-line {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 165, 0.7) 50%, transparent);
+  transform: scaleX(0);
+  opacity: 0;
+}
+.fx-shown > .fx-reveal-line { animation: fxLine 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; }
+@keyframes fxLine {
+  0%   { transform: scaleX(0); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0.35; }
+}
+
+/* Hiệu ứng của Slider nằm trong components/frontend/Slider.tsx (SLIDER_CSS) */
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-ambient > span,
+  .fx-shown > .fx-reveal-line { animation: none !important; }
+}

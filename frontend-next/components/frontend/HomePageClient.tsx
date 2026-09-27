@@ -3,6 +3,8 @@
 import { lazy, Suspense, useEffect, memo, useRef, useState } from "react";
 import SEO from "@/components/frontend/SEO";
 import "@/components/frontend/Home/home-sections.css";
+import "@/components/frontend/Home/home-fx.css";
+import HomeFx, { HomeAmbient } from "@/components/frontend/Home/HomeFx";
 import type { Movie } from "@/types/movie";
 
 import Slider from "@/components/frontend/Slider";
@@ -152,6 +154,8 @@ const LazySection = memo(({ children, loadMargin = "400px", delay = 0 }: LazySec
     return (
         <div
             ref={ref}
+            data-spotlight
+            className={shown ? "fx-shown" : undefined}
             style={{
                 opacity:   shown ? 1 : 0,
                 transform: shown ? "translateY(0)" : "translateY(28px)",
@@ -159,6 +163,8 @@ const LazySection = memo(({ children, loadMargin = "400px", delay = 0 }: LazySec
                 willChange: shown ? "auto" : "opacity, transform",
             }}
         >
+            {/* Đường sáng chạy ngang khi section hiện ra (home-fx.css) */}
+            <span className="fx-reveal-line" aria-hidden />
             {loaded
                 ? <Suspense fallback={<SectionSkeleton />}>{children}</Suspense>
                 : <SectionSkeleton animated={false} />}
@@ -182,6 +188,11 @@ export interface HomeInitialData {
 export default function HomePageClient({ initialData }: { initialData: HomeInitialData }) {
     return (
         <>
+        {/* Thanh tiến trình + hiệu ứng chuột: ở ngoài khối isolate để không bị thanh thông báo che */}
+        <HomeFx />
+        {/* isolate: nền màu trôi (-z-10) nằm trên nền layout nhưng dưới nội dung */}
+        <div className="relative isolate">
+            <HomeAmbient />
             <SEO
                 title="MoxiMovie – Xem Phim Mới | Phim Hay | Vietsub HD | Thuyết Minh"
                 description="MoxiMovie - Trang xem phim mới, phim hay Vietsub HD. Cập nhật hơn 10.000+ phim chiếu rạp, phim bộ, phim lẻ chất lượng cao mỗi ngày."
@@ -197,7 +208,7 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
 
             {/* ── 4 sections above fold: stagger reveal ngay sau slider ── */}
             <div className="mt-8 px-3 sm:px-5 xl:px-6">
-                <div style={{
+                <div data-spotlight style={{
                     background: "linear-gradient(to bottom, #282b3a 0%, #282b3a 66%, #191B24 100%)",
                     border: "1px solid rgba(255,255,255,0.05)",
                     borderBottom: "none",
@@ -234,6 +245,7 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
             <LazySection loadMargin="300px"><HongKongMoviesSection /></LazySection>
             <LazySection loadMargin="300px"><GhostMoviesSection /></LazySection>
             <LazySection loadMargin="300px"><BrainTeaserSection /></LazySection>
+        </div>
         </>
     );
 }
