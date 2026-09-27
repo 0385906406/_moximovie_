@@ -52,10 +52,10 @@ export default function PlayerCurtain({ state, title, subtitle, loading, onPlay 
                 <span className="pcu-hint">{loading ? "Đang chuẩn bị suất chiếu…" : "Nhấn để mở màn"}</span>
             </div>
 
-            {title && (
+            {(title || subtitle) && (
                 <div className="pcu-title">
                     {subtitle && <span className="pcu-badge">{subtitle}</span>}
-                    <p dangerouslySetInnerHTML={{ __html: title }} />
+                    {title && <p dangerouslySetInnerHTML={{ __html: title }} />}
                 </div>
             )}
 
@@ -75,7 +75,7 @@ const CSS = `
     position: absolute; top: 0; bottom: 0; width: 50.5%; z-index: 2;
     background:
         linear-gradient(to bottom, rgba(0,0,0,.35), transparent 22%, transparent 72%, rgba(0,0,0,.6)),
-        repeating-linear-gradient(90deg, #032b27 0px, #065a4d 18px, #0d8a74 28px, #065a4d 38px, #032b27 56px);
+        repeating-linear-gradient(90deg, #16060b 0px, #330d17 18px, #52172a 28px, #330d17 38px, #16060b 56px);
     box-shadow: inset 0 0 60px rgba(0,0,0,.55);
     will-change: transform;
 }
@@ -106,9 +106,9 @@ const CSS = `
 .pcu-valance {
     position: absolute; left: 0; right: 0; top: 0; height: 13%; min-height: 34px; z-index: 3;
     background:
-        radial-gradient(circle at 50% 0, transparent 18px, #04352f 19px) 0 100% / 40px 26px repeat-x,
-        linear-gradient(to bottom, #06463d, #032b27);
-    border-bottom: 2px solid #22d3a5;
+        radial-gradient(circle at 50% 0, transparent 18px, #2a0a12 19px) 0 100% / 40px 26px repeat-x,
+        linear-gradient(to bottom, #3a0f1a, #1c070c);
+    border-bottom: 2px solid #a8845a;
     box-shadow: 0 6px 18px rgba(0,0,0,.55);
 }
 .pcu-opening .pcu-valance { animation: pcuValance ${OPEN} ${EASE} forwards; }
@@ -117,7 +117,7 @@ const CSS = `
 /* ── Luồng sáng ── */
 .pcu-burst {
     position: absolute; inset: 0; z-index: 1; opacity: 0; pointer-events: none;
-    background: radial-gradient(ellipse 35% 80% at 50% 50%, rgba(180,255,235,.55), rgba(34,211,165,.18) 45%, transparent 75%);
+    background: radial-gradient(ellipse 35% 80% at 50% 50%, rgba(255,236,210,.5), rgba(255,190,140,.14) 45%, transparent 75%);
 }
 .pcu-opening .pcu-burst { animation: pcuBurst ${OPEN} ease-out forwards; }
 @keyframes pcuBurst { 0% { opacity: 0; transform: scaleX(.2); } 25% { opacity: 1; } 100% { opacity: 0; transform: scaleX(1.6); } }
@@ -125,7 +125,7 @@ const CSS = `
 /* ── Đèn rọi lướt ── */
 .pcu-spot {
     position: absolute; top: -20%; bottom: -20%; width: 45%; z-index: 4; pointer-events: none;
-    background: radial-gradient(ellipse at center, rgba(120,255,225,.14), transparent 65%);
+    background: radial-gradient(ellipse at center, rgba(255,205,160,.10), transparent 65%);
     animation: pcuSpot 7s ease-in-out infinite alternate;
 }
 @keyframes pcuSpot { from { left: -10%; } to { left: 65%; } }

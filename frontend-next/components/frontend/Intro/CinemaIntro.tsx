@@ -603,7 +603,7 @@ const CSS = `
     position: absolute; top: 0; bottom: 0; width: 51%; z-index: 20;
     background:
         linear-gradient(to bottom, rgba(0,0,0,0.35), transparent 18%, transparent 75%, rgba(0,0,0,0.55)),
-        repeating-linear-gradient(90deg, #032b27 0px, #065a4d 22px, #0d8a74 34px, #065a4d 46px, #032b27 68px);
+        repeating-linear-gradient(90deg, #16060b 0px, #330d17 22px, #52172a 34px, #330d17 46px, #16060b 68px);
     box-shadow: inset 0 0 80px rgba(0,0,0,0.6);
     will-change: transform;
 }
@@ -616,9 +616,9 @@ const CSS = `
 .ci-curtain-l::after { right: 0; transform: scaleX(-1); } .ci-curtain-r::after { left: 0; }
 .ci-valance { position: absolute; left: 0; right: 0; top: 0; height: 64px; z-index: 21;
     background:
-        radial-gradient(circle at 50% 0, transparent 26px, #04352f 27px) 0 18px / 56px 46px repeat-x,
-        linear-gradient(to bottom, #06463d, #032b27);
-    border-bottom: 3px solid #22d3a5;
+        radial-gradient(circle at 50% 0, transparent 26px, #2a0a12 27px) 0 18px / 56px 46px repeat-x,
+        linear-gradient(to bottom, #3a0f1a, #1c070c);
+    border-bottom: 3px solid #a8845a;
     box-shadow: 0 6px 24px rgba(0,0,0,0.6);
     transform: translateY(calc(var(--c) * -40px)); }
 

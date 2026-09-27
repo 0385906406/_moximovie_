@@ -214,7 +214,6 @@ function XemPhimClient() {
                                     <HlsPlayerWithFilter
                                         src={currentEpisode.link_m3u8}
                                         poster={movieImageSources(movie, "thumb")[0]}
-                                        title={movie.name}
                                         subtitle={playerSubtitle}
                                         prevEpisode={prevEpisode}
                                         nextEpisode={nextEpisode}

@@ -155,14 +155,14 @@ const CSS = `
 .nf-curtain { position: absolute; top: 0; bottom: 0; width: 17vw; min-width: 70px; z-index: 3; pointer-events: none;
     background:
         linear-gradient(to bottom, rgba(0,0,0,.35), transparent 20%, transparent 75%, rgba(0,0,0,.6)),
-        repeating-linear-gradient(90deg, #032b27 0px, #065a4d 20px, #0d8a74 30px, #065a4d 40px, #032b27 60px);
+        repeating-linear-gradient(90deg, #16060b 0px, #330d17 20px, #52172a 30px, #330d17 40px, #16060b 60px);
     box-shadow: inset 0 0 60px rgba(0,0,0,.6); animation: nfSway 8s ease-in-out infinite alternate; }
 .nf-curtain-l { left: 0; transform-origin: top left; }
 .nf-curtain-r { right: 0; transform-origin: top right; animation-delay: -4s; }
 @keyframes nfSway { from { transform: skewX(0deg); } to { transform: skewX(1.2deg); } }
 .nf-valance { position: absolute; left: 0; right: 0; top: 0; height: 56px; z-index: 4;
-    background: radial-gradient(circle at 50% 0, transparent 24px, #04352f 25px) 0 16px / 52px 40px repeat-x, linear-gradient(to bottom, #06463d, #032b27);
-    border-bottom: 3px solid #22d3a5; box-shadow: 0 6px 24px rgba(0,0,0,.6); }
+    background: radial-gradient(circle at 50% 0, transparent 24px, #2a0a12 25px) 0 16px / 52px 40px repeat-x, linear-gradient(to bottom, #3a0f1a, #1c070c);
+    border-bottom: 3px solid #a8845a; box-shadow: 0 6px 24px rgba(0,0,0,.6); }
 
 /* ── Sân khấu ── */
 .nf-stage { position: relative; z-index: 5; width: min(880px, 100%); display: flex; flex-direction: column; align-items: center; }
