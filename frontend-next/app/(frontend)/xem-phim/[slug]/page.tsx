@@ -15,19 +15,22 @@ import { toast }        from "sonner";
 import SEO                from "@/components/frontend/SEO";
 import { ThreeDot }       from "react-loading-indicators";
 import HlsPlayerWithFilter from "@/components/frontend/MovieDetailPlay/HlsPlayerWithFilter";
+import MovieImage from "@/components/frontend/MovieImage";
+import { movieImageSources } from "@/lib/movieImage";
 
 /* ══════════════════════════════════════════════
    BACKDROP
 ══════════════════════════════════════════════ */
-function WatchBackdrop({ thumbUrl }: { thumbUrl?: string }) {
-    if (!thumbUrl) return null;
+function WatchBackdrop({ movie }: { movie?: Movie | null }) {
+    if (!movie) return null;
     return (
         <div aria-hidden className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                src={thumbUrl}
+            {/* Ảnh bị blur 80px nên chỉ cần bản nhỏ */}
+            <MovieImage
+                movie={movie} prefer="thumb"
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover select-none"
+                fill sizes="256px"
+                className="object-cover select-none"
                 style={{ filter: "blur(80px) brightness(0.18) saturate(1.3)", transform: "scale(1.1)" }}
             />
             <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(6,8,16,0.55) 0%, rgba(6,8,16,0.75) 50%, rgba(6,8,16,0.97) 100%)" }} />
@@ -142,7 +145,7 @@ function XemPhimClient() {
                 name={movie.name}
             />
 
-            <WatchBackdrop thumbUrl={movie.thumb_url} />
+            <WatchBackdrop movie={movie} />
 
             <div className="relative z-10 anim-fadeup">
 
@@ -195,7 +198,7 @@ function XemPhimClient() {
                                 {currentEpisode.link_m3u8 && (
                                     <HlsPlayerWithFilter
                                         src={currentEpisode.link_m3u8}
-                                        poster={movie.thumb_url}
+                                        poster={movieImageSources(movie, "thumb")[0]}
                                     />
                                 )}
                             </div>
@@ -452,13 +455,15 @@ function XemPhimClient() {
                         <div className="flex gap-5 sm:gap-6 items-start">
 
                             {/* Poster */}
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={movie.poster_url}
-                                alt={movie.name}
-                                className="poster-img shrink-0 w-[80px] sm:w-[100px] rounded-xl object-cover"
-                                style={{ aspectRatio: "2/3", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}
-                            />
+                            <div className="poster-img relative shrink-0 w-[80px] sm:w-[100px] rounded-xl overflow-hidden"
+                                style={{ aspectRatio: "2/3", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+                                <MovieImage
+                                    movie={movie} prefer="poster"
+                                    alt={movie.name}
+                                    fill sizes="100px"
+                                    className="object-cover"
+                                />
+                            </div>
 
                             {/* Info */}
                             <div className="flex-1 min-w-0">

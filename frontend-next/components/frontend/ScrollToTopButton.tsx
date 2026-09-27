@@ -9,25 +9,37 @@ export default function ScrollToTopButton() {
     const hideTimeout = useRef<number | null>(null);
 
     useEffect(() => {
+        let raf = 0;
+        let shown: boolean | null = null;
+
         const update = () => {
+            raf = 0;
             const scrollY  = window.scrollY;
             const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            setProgress(maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0);
+            /* Làm tròn 0.5% → React bỏ qua render khi giá trị không đổi */
+            setProgress(maxScroll > 0 ? Math.round(Math.min(scrollY / maxScroll, 1) * 200) / 200 : 0);
 
-            if (scrollY > 200) {
+            /* Chỉ xử lý khi vượt ngưỡng, không tạo timer mới ở mỗi sự kiện scroll */
+            const above = scrollY > 200;
+            if (above === shown) return;
+            shown = above;
+            if (hideTimeout.current) clearTimeout(hideTimeout.current);
+            if (above) {
                 setShow(true);
-                setTimeout(() => setVisible(true), 10);
+                hideTimeout.current = window.setTimeout(() => setVisible(true), 10);
             } else {
                 setVisible(false);
-                if (hideTimeout.current) clearTimeout(hideTimeout.current);
                 hideTimeout.current = window.setTimeout(() => setShow(false), 350);
             }
         };
+        /* Gộp nhiều sự kiện scroll trong 1 frame thành 1 lần cập nhật */
+        const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
 
-        window.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("scroll", onScroll, { passive: true });
         update();
         return () => {
-            window.removeEventListener("scroll", update);
+            window.removeEventListener("scroll", onScroll);
+            cancelAnimationFrame(raf);
             if (hideTimeout.current) clearTimeout(hideTimeout.current);
         };
     }, []);

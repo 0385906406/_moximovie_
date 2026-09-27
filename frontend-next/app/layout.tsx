@@ -27,9 +27,10 @@ const jetbrainsMono = JetBrains_Mono({
     display: "swap",
 });
 
+/* title/description KHÔNG đặt ở đây: mỗi trang tự render qua components/frontend/SEO.tsx
+   (React 19 đưa lên <head>). Đặt cả 2 nơi sẽ ra 2 thẻ <title>/description trùng nhau. */
 export const metadata: Metadata = {
-    title: "MoxiMovie – Xem Phim Mới | Phim Hay | Vietsub HD",
-    description: "MoxiMovie - Trang xem phim mới, phim hay Vietsub HD. Cập nhật hơn 10.000+ phim chiếu rạp, phim bộ, phim lẻ chất lượng cao mỗi ngày.",
+    metadataBase: new URL("https://www.moximovie.click"),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

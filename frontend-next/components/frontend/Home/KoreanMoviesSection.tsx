@@ -3,69 +3,13 @@
 import { movieService } from "@/services/movieService";
 import { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import type { Swiper as SwiperType } from "swiper";
 import type { Movie } from "@/types/movie";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
-const STYLES = `
-  .kr-section * { box-sizing: border-box; }
-
-  .kr-card { transition: transform 0.32s cubic-bezier(0.16,1,0.3,1); }
-  .kr-card:hover { transform: translateY(-6px); }
-  .kr-card:hover .kr-thumb { transform: scale(1.07); }
-  .kr-card:hover .kr-overlay { opacity: 1 !important; }
-  .kr-card:hover .kr-play { opacity: 1 !important; transform: scale(1) !important; }
-  .kr-card:hover .kr-info { opacity: 1 !important; transform: translateY(0) !important; }
-
-  .kr-thumb   { transition: transform 0.42s cubic-bezier(0.16,1,0.3,1); }
-  .kr-overlay { transition: opacity 0.3s ease; }
-  .kr-play    { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
-  .kr-info    { transition: all 0.35s 0.05s cubic-bezier(0.16,1,0.3,1); }
-
-  .kr-play:hover { background: rgba(167,139,250,1) !important; transform: scale(1.1) !important; }
-
-  @keyframes krShimmer {
-    0%   { background-position: -600px 0 }
-    100% { background-position:  600px 0 }
-  }
-  .kr-skeleton {
-    background: linear-gradient(90deg, #1e2030 25%, #272a3d 50%, #1e2030 75%);
-    background-size: 600px 100%;
-    animation: krShimmer 1.6s ease-in-out infinite;
-    border-radius: 12px;
-  }
-
-  @keyframes krLine { from { width:0 } to { width:44px } }
-  .kr-title-line { animation: krLine 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both; }
-
-  .badge-hd         { background: linear-gradient(135deg,#3b82f6,#1d4ed8); }
-  .badge-fhd        { background: linear-gradient(135deg,#8b5cf6,#6d28d9); }
-  .badge-cam        { background: linear-gradient(135deg,#ef4444,#b91c1c); }
-  .badge-vietsub    { background: linear-gradient(135deg,#22c55e,#15803d); }
-  .badge-thuyetminh { background: linear-gradient(135deg,#f97316,#c2410c); }
-  .badge-default    { background: rgba(255,255,255,0.12); }
-
-  @keyframes krFadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
-  .kr-slide-item { animation: krFadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
-
-  /* custom nav button */
-  .kr-nav-btn {
-    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
-  }
-  .kr-nav-btn:hover {
-    background: rgba(167,139,250,0.15) !important;
-    border-color: rgba(167,139,250,0.45) !important;
-    color: #a78bfa !important;
-    transform: scale(1.08);
-  }
-  .kr-nav-btn:active { transform: scale(0.94); }
-  .kr-nav-btn:disabled {
-    opacity: 0.2 !important;
-    pointer-events: none;
-  }
-`;
 
 const getBadgeClass = (val?: string) => {
     const v = (val ?? "").toLowerCase();
@@ -94,16 +38,7 @@ function KoreanMoviesSection({ initialData }: KrProps) {
     const [isBeginning, setIsBeginning] = useState(true);
     const [isEnd, setIsEnd] = useState(false);
     const swiperRef = useRef<SwiperType | null>(null);
-    const styleInjected = useRef(false);
 
-    useEffect(() => {
-        if (!styleInjected.current) {
-            const tag = document.createElement("style");
-            tag.textContent = STYLES;
-            document.head.appendChild(tag);
-            styleInjected.current = true;
-        }
-    }, []);
 
     useEffect(() => {
         if (initialData?.length) return;
@@ -219,6 +154,8 @@ function KoreanMoviesSection({ initialData }: KrProps) {
                             setIsBeginning(swiper.isBeginning);
                             setIsEnd(swiper.isEnd);
                         }}
+                        /* Đổi kích thước cửa sổ → số phim vừa màn hình thay đổi, cập nhật lại nút trước/sau */
+                        onResize={swiper => { setIsBeginning(swiper.isBeginning); setIsEnd(swiper.isEnd); }}
                         onSlideChange={swiper => {
                             setIsBeginning(swiper.isBeginning);
                             setIsEnd(swiper.isEnd);
@@ -232,8 +169,8 @@ function KoreanMoviesSection({ initialData }: KrProps) {
                                 >
                                     <Link href={`/phim/${movie.slug}`} style={{ display: "block" }}>
                                         <div className="movie-card relative rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                                            <Image
-                                                src={(movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)}
+                                            <MovieImage
+                                                movie={movie} prefer="thumb"
                                                 alt={movie.name ?? ""} loading="lazy"
                                                 fill
                                                 sizes="(max-width: 640px) 45vw, 220px"

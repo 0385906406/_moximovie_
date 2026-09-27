@@ -3,10 +3,11 @@
 import { useEffect, useState , memo } from "react";
 import { movieService } from "@/services/movieService";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import { Navigation } from "swiper/modules";
 import Link from "next/link";
 import type { Movie } from "@/types/movie";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
 function SkeletonCard() {
     return (
@@ -95,8 +96,8 @@ function JapanMoviesSection() {
 
                                         {/* POSTER */}
                                         <div className="movie-card relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "2/3" }}>
-                                            <Image
-                                                src={(movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)}
+                                            <MovieImage
+                                                movie={movie} prefer="poster"
                                                 alt={movie.name}
                                                 fill
                                                 sizes="(max-width: 640px) 30vw, 200px"
@@ -160,28 +161,6 @@ function JapanMoviesSection() {
                 </Swiper>
             )}
 
-            <style>{`
-                @media (max-width: 639px) {
-                    .japan-swiper .swiper-button-next,
-                    .japan-swiper .swiper-button-prev { display: none !important; }
-                }
-                .japan-swiper .swiper-button-next,
-                .japan-swiper .swiper-button-prev {
-                    width: 32px; height: 32px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    transition: all 0.25s ease; top: 38%;
-                }
-                .japan-swiper .swiper-button-next:hover,
-                .japan-swiper .swiper-button-prev:hover {
-                    background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.4);
-                }
-                .japan-swiper .swiper-button-next::after,
-                .japan-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
-                .japan-swiper .swiper-button-disabled { opacity: 0 !important; }
-                .japan-swiper { overflow: hidden !important; }
-                .japan-swiper .swiper-wrapper { overflow: visible; }
-            `}</style>
         </div>
     );
 }

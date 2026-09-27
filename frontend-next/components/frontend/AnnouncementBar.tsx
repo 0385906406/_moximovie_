@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 
-interface TickerMovie {
+export interface TickerMovie {
     country: string;
     name: string;
     slug: string;
@@ -13,34 +12,10 @@ const FALLBACK: TickerMovie[] = [
     { country: "Hàn Quốc", name: "Đang tải phim mới...", slug: "" },
 ];
 
-export default function AnnouncementBar() {
-    const [movies, setMovies] = useState<TickerMovie[]>(FALLBACK);
-
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const [r1, r2] = await Promise.all([
-                    fetch("https://phimapi.com/v1/api/danh-sach/phim-bo?sort_field=modified&sort_type=desc&limit=15"),
-                    fetch("https://phimapi.com/v1/api/danh-sach/phim-le?sort_field=modified&sort_type=desc&limit=15"),
-                ]);
-                const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
-                const items: TickerMovie[] = [
-                    ...(d1?.data?.items ?? []),
-                    ...(d2?.data?.items ?? []),
-                ]
-                    .filter((m) => m.country?.[0]?.name && m.name && m.slug)
-                    .map((m) => ({
-                        country: m.country[0].name as string,
-                        name: m.name as string,
-                        slug: m.slug as string,
-                    }));
-                if (items.length) setMovies(items);
-            } catch {
-                /* keep fallback */
-            }
-        };
-        load();
-    }, []);
+/* Danh sách phim được tải sẵn trên server (xem AnnouncementBarServer.tsx),
+   trình duyệt không phải gọi thêm 2 API mỗi lần mở trang */
+export default function AnnouncementBar({ movies: initial }: { movies?: TickerMovie[] }) {
+    const movies = initial?.length ? initial : FALLBACK;
 
     const track = [...movies, ...movies];
 

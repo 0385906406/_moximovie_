@@ -1,4 +1,8 @@
-import { Helmet } from "react-helmet";
+/*
+ * Thẻ SEO dùng tính năng có sẵn của React 19: <title>, <meta>, <link> render ở đâu cũng được
+ * React tự đưa lên <head> — kể cả khi render trên server, nên Google đọc được ngay từ HTML.
+ * (Trước dùng react-helmet: chỉ chạy trên trình duyệt + cảnh báo UNSAFE_componentWillMount với React 19.)
+ */
 
 interface SEOProps {
     title: string;
@@ -20,8 +24,25 @@ export default function SEO({
     const schemaType =
         type === "movie" ? "Movie" : type === "collection" ? "CollectionPage" : "WebPage";
 
+    const schema = {
+        "@context": "https://schema.org",
+        "@type": schemaType,
+        name: name || title.split("|")[0].trim(),
+        description: description,
+        url: canonical,
+        image: image,
+        publisher: {
+            "@type": "Organization",
+            name: "MoxiMovie",
+            logo: {
+                "@type": "ImageObject",
+                url: "https://www.moximovie.click/NewYear/favicon.ico",
+            },
+        },
+    };
+
     return (
-        <Helmet>
+        <>
             {/* Basic */}
             <title>{title}</title>
             <meta name="description" content={description} />
@@ -44,28 +65,14 @@ export default function SEO({
             <meta name="twitter:description" content={description} />
             <meta name="twitter:image" content={image} />
 
-            {/* Schema */}
-            <script type="application/ld+json">
-                {JSON.stringify({
-                    "@context": "https://schema.org",
-                    "@type": schemaType,
-                    name: name || title.split("|")[0].trim(),
-                    description: description,
-                    url: canonical,
-                    image: image,
-                    publisher: {
-                        "@type": "Organization",
-                        name: "MoxiMovie",
-                        logo: {
-                            "@type": "ImageObject",
-                            url: "https://www.moximovie.click/NewYear/favicon.ico",
-                        },
-                    },
-                })}
-            </script>
+            {/* Schema — "<" được escape để nội dung (tên phim...) không thể đóng thẻ script */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }}
+            />
 
-            {/* Preload */}
-            <link rel="preload" href={image} as="image" />
-        </Helmet>
+            {/* Không preload ảnh OG: ảnh này dành cho Facebook/Zalo khi chia sẻ link,
+                người xem trang không cần → preload chỉ tốn băng thông */}
+        </>
     );
 }

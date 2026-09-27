@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Play, Info } from "lucide-react";
 import type { Movie } from "@/types/movie";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
 interface Props {
     movie: Movie;
@@ -20,8 +20,6 @@ function formatTime(minutes: number) {
 }
 
 export function MovieHoverPopup({ movie, children }: Props) {
-    const thumb = movie.thumb_url ? (movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)
-                : movie.poster_url ? (movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`) : "";
 
     const wrapRef    = useRef<HTMLDivElement>(null);
     const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,8 +104,8 @@ export function MovieHoverPopup({ movie, children }: Props) {
                 >
                     {/* Backdrop */}
                     <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                        {thumb ? (
-                            <Image src={thumb} alt={movie.name} fill sizes="(max-width: 768px) 85vw, 380px" quality={75} className="object-cover" />
+                        {movie.thumb_url || movie.poster_url ? (
+                            <MovieImage movie={movie} prefer="thumb" alt={movie.name} fill sizes="(max-width: 768px) 85vw, 380px" quality={75} className="object-cover" />
                         ) : (
                             <div className="w-full h-full bg-[#1a1d27]" />
                         )}

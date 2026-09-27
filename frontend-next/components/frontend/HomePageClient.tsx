@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useEffect, memo, useRef, useState } from "react";
 import SEO from "@/components/frontend/SEO";
+import "@/components/frontend/Home/home-sections.css";
 import type { Movie } from "@/types/movie";
 
 import Slider from "@/components/frontend/Slider";
@@ -24,12 +25,13 @@ const GhostMoviesSection           = lazy(() => import("@/components/frontend/Ho
 const BrainTeaserSection           = lazy(() => import("@/components/frontend/Home/BrainTeaserWithCriminalsMoviesSection"));
 
 /* ── Skeleton ── */
-const SectionSkeleton = memo(() => (
+/* animated=false: skeleton của section còn ở xa, không cần nhấp nháy (tốn CPU mỗi frame) */
+const SectionSkeleton = memo(({ animated = true }: { animated?: boolean }) => (
     <div className="px-3 lg:px-5 xl:px-6 py-4">
-        <div className="h-5 w-40 rounded bg-white/5 mb-4 animate-pulse" />
+        <div className={`h-5 w-40 rounded bg-white/5 mb-4 ${animated ? "animate-pulse" : ""}`} />
         <div className="flex gap-3 overflow-hidden">
             {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex-shrink-0 rounded-xl bg-white/5 animate-pulse"
+                <div key={i} className={`flex-shrink-0 rounded-xl bg-white/5 ${animated ? "animate-pulse" : ""}`}
                     style={{ width: 200, height: 113, animationDelay: `${i * 60}ms` }} />
             ))}
         </div>
@@ -81,6 +83,23 @@ const RevealSection = memo(({ children, delay = 0, threshold = 0.06 }: RevealPro
 });
 RevealSection.displayName = "RevealSection";
 
+/* ── Hàng đợi idle: mount trước từng section lúc trình duyệt rảnh (không phải lúc đang cuộn) ── */
+const idleQueue: (() => void)[] = [];
+let idleRunning = false;
+function runIdle() {
+    idleRunning = true;
+    const ric = window.requestIdleCallback ?? ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: true, timeRemaining: () => 0 }), 300));
+    ric(() => {
+        idleQueue.shift()?.();
+        if (idleQueue.length) runIdle(); else idleRunning = false;
+    });
+}
+function scheduleIdle(fn: () => void) {
+    idleQueue.push(fn);
+    if (!idleRunning) runIdle();
+}
+const IDLE_START_MS = 2000; // để trang đầu tiên tải xong, ảnh hiện ra rồi mới bắt đầu
+
 /* ── LazySection — load khi gần viewport + reveal animation ── */
 interface LazySectionProps {
     children: React.ReactNode;
@@ -113,9 +132,20 @@ const LazySection = memo(({ children, loadMargin = "400px", delay = 0 }: LazySec
             { rootMargin: "0px 0px -40px 0px", threshold: 0.04 }
         );
 
+        /* Section ngoài màn hình → tạm dừng mọi animation CSS bên trong (xem [data-offscreen] trong globals.css) */
+        const pauseIo = new IntersectionObserver(
+            ([e]) => el.toggleAttribute("data-offscreen", !e.isIntersecting),
+            { rootMargin: "200px" }
+        );
+
         loadIo.observe(el);
         revealIo.observe(el);
-        return () => { loadIo.disconnect(); revealIo.disconnect(); };
+        pauseIo.observe(el);
+
+        /* Mount trước lúc rảnh → khi cuộn tới section đã sẵn sàng, không render giữa lúc cuộn */
+        let alive = true;
+        const idleT = window.setTimeout(() => scheduleIdle(() => { if (alive) setLoaded(true); }), IDLE_START_MS);
+        return () => { alive = false; clearTimeout(idleT); loadIo.disconnect(); revealIo.disconnect(); pauseIo.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -131,7 +161,7 @@ const LazySection = memo(({ children, loadMargin = "400px", delay = 0 }: LazySec
         >
             {loaded
                 ? <Suspense fallback={<SectionSkeleton />}>{children}</Suspense>
-                : <SectionSkeleton />}
+                : <SectionSkeleton animated={false} />}
         </div>
     );
 });
@@ -147,11 +177,9 @@ export interface HomeInitialData {
 }
 
 /* ── Main client page ── */
+/* Không tự scrollTo(0) khi mount: Next đã tự lên đầu trang khi chuyển trang,
+   còn khi bấm Back thì cần giữ nguyên vị trí cuộn cũ */
 export default function HomePageClient({ initialData }: { initialData: HomeInitialData }) {
-    useEffect(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-    }, []);
-
     return (
         <>
             <SEO
@@ -160,6 +188,9 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
                 canonical="https://www.moximovie.click/phimhay"
                 type="website"
             />
+
+            {/* Mỗi trang chỉ 1 thẻ h1 (tốt cho SEO); tiêu đề từng slide dùng h2 */}
+            <h1 className="sr-only">MoxiMovie – Xem phim mới, phim hay Vietsub HD miễn phí</h1>
 
             {/* ── Slider: không cần reveal, xuất hiện ngay ── */}
             <Slider initialData={initialData.slider} />

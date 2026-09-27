@@ -69,7 +69,7 @@ function AnimatedCard({ movie, index }: { movie: Movie; index: number }) {
                 transition: `opacity 0.4s ease ${(index % 10) * 40}ms, transform 0.4s ease ${(index % 10) * 40}ms`,
             }}
         >
-            <MovieCard movie={movie} />
+            <MovieCard movie={movie} priority={index < 8} />
         </div>
     );
 }

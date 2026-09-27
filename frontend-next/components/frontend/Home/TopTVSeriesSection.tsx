@@ -3,10 +3,11 @@
 import { useEffect, useState , memo } from "react";
 import { movieService } from "@/services/movieService";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import { Navigation } from "swiper/modules";
 import type { Movie } from "@/types/movie";
 import Link from "next/link";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
 // ── Skeleton ──
 function SkeletonCard() {
@@ -105,8 +106,8 @@ function TopTVSeriesSection() {
                                         style={{ aspectRatio: "2/3" }}
                                     >
                                         {/* Ảnh — không cần lật riêng vì wrapper đã lật */}
-                                        <Image
-                                            src={(movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)}
+                                        <MovieImage
+                                            movie={movie} prefer="poster"
                                             alt={movie.name}
                                             fill
                                             sizes="(max-width: 640px) 30vw, 200px"
@@ -205,28 +206,6 @@ function TopTVSeriesSection() {
                 </Swiper>
             )}
 
-            <style>{`
-                @media (max-width: 639px) {
-                    .top-tvseries-swiper .swiper-button-next,
-                    .top-tvseries-swiper .swiper-button-prev { display: none !important; }
-                }
-                .top-tvseries-swiper .swiper-button-next,
-                .top-tvseries-swiper .swiper-button-prev {
-                    width: 32px; height: 32px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    transition: all 0.25s ease; top: 35%;
-                }
-                .top-tvseries-swiper .swiper-button-next:hover,
-                .top-tvseries-swiper .swiper-button-prev:hover {
-                    background: rgba(250,204,21,0.15); border-color: rgba(250,204,21,0.4);
-                }
-                .top-tvseries-swiper .swiper-button-next::after,
-                .top-tvseries-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
-                .top-tvseries-swiper .swiper-button-disabled { opacity: 0 !important; }
-                .top-tvseries-swiper { overflow: hidden !important; }
-                .top-tvseries-swiper .swiper-wrapper { overflow: visible; }
-            `}</style>
         </div>
     );
 }

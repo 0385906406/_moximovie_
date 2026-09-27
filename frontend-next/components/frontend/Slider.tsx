@@ -7,7 +7,10 @@ import { movieService } from "@/services/movieService";
 import type { Movie } from "@/types/movie";
 import type { Category } from "@/types/category";
 import { ThreeDot } from "react-loading-indicators";
-import NextImage from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
+import { getImageProps } from "next/image";
+import { movieImageSources } from "@/lib/movieImage";
+import { usePauseOffscreen } from "@/hooks/usePauseOffscreen";
 
 const INTERVAL     = 7000;
 const SWIPE_THRESH = 50;
@@ -23,9 +26,44 @@ const FLOATS = [
     { top: "90%", left: "30%",  size: 5, color: "#6366F1", delay: "-14s" },
 ];
 
-function preloadImage(src: string) {
+/* Tải trước đúng bản đã resize mà slide sẽ dùng (cùng srcset/sizes) */
+function preloadSlide(m: Movie) {
+    const src = movieImageSources(m, "thumb")[0];
+    if (!src) return;
+    const { props } = getImageProps({ src, alt: "", fill: true, sizes: "100vw", quality: 80 });
     const img = new Image();
-    img.src = src;
+    img.sizes = "100vw";
+    if (props.srcSet) img.srcset = props.srcSet;
+    img.src = props.src;
+}
+
+/* ── Affiliate wrapper ──
+   Khai báo ngoài Slider: khai báo bên trong thì mỗi lần đổi slide React coi là component mới
+   → gỡ/dựng lại nút "Xem phim" của cả 10 slide */
+function AffiliateWrap({
+    children,
+    className = "",
+    limitReached,
+    onLimitReached,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    limitReached: boolean;
+    onLimitReached: () => void;
+}) {
+    if (limitReached) return <div className={className}>{children}</div>;
+    /* span thay vì <a>: bên trong đã có <Link> (là thẻ <a>), <a> lồng <a> là HTML sai → lỗi hydration */
+    return (
+        <span
+            className={className}
+            onClick={() => {
+                const data = increaseAffiliateCount();
+                if (data.count >= data.max) onLimitReached();
+            }}
+        >
+            {children}
+        </span>
+    );
 }
 
 const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
@@ -45,11 +83,12 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
     const [isLimitReached, setIsLimitReached] = useState(false);
 
     const touchX = useRef(0);
+    const pauseRef = usePauseOffscreen<HTMLElement>("0px");
 
     /* ── Fetch ── */
     useEffect(() => {
         if (initialData?.length) {
-            slides.slice(0, 4).forEach(m => preloadImage((m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`)));
+            slides.slice(0, 4).forEach(preloadSlide);
             return;
         }
         movieService.dataSlider()
@@ -61,9 +100,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                         : [],
                 }));
                 setSlides(mapped);
-                mapped.slice(0, 4).forEach(m =>
-                    preloadImage((m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`))
-                );
+                mapped.slice(0, 4).forEach(preloadSlide);
             })
             .catch(e => console.error("Fetch slider error:", e))
             .finally(() => setLoading(false));
@@ -77,25 +114,27 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
         setProgKey(k => k + 1);
     }, [slides.length]);
 
-    /* ── Auto-advance ── */
-    useEffect(() => {
-        if (paused || slides.length <= 1) return;
-        const t = setTimeout(() => {
-            setActive(a => (a + 1) % slides.length);
-            setProgKey(k => k + 1);
-        }, INTERVAL);
-        return () => clearTimeout(t);
-    }, [active, paused, slides.length]);
+    /* ── Auto-advance: chuyển slide khi thanh tiến trình chạy hết (onAnimationEnd bên dưới).
+       Hover hoặc cuộn khỏi màn hình → animation tạm dừng → cả thanh lẫn việc chuyển slide cùng dừng,
+       không còn lệch nhau như khi dùng setTimeout. ── */
+    const advance = useCallback(() => {
+        if (slides.length <= 1) return;
+        setActive(a => (a + 1) % slides.length);
+        setProgKey(k => k + 1);
+    }, [slides.length]);
 
     /* ── Preload next ── */
     useEffect(() => {
         if (!slides.length) return;
-        preloadImage((slides[(active + 1) % slides.length].thumb_url?.startsWith('http') ? slides[(active + 1) % slides.length].thumb_url : `https://phimimg.com/${slides[(active + 1) % slides.length].thumb_url}`));
+        preloadSlide(slides[(active + 1) % slides.length]);
     }, [active, slides]);
 
     /* ── Keyboard ── */
     useEffect(() => {
         const fn = (e: KeyboardEvent) => {
+            /* Đang gõ trong ô tìm kiếm thì mũi tên để di chuyển con trỏ, không được đổi slide */
+            const t = e.target as HTMLElement | null;
+            if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
             if (e.key === "ArrowLeft")  goTo(active - 1);
             if (e.key === "ArrowRight") goTo(active + 1);
         };
@@ -110,28 +149,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
         if (Math.abs(delta) > SWIPE_THRESH) goTo(active + (delta < 0 ? 1 : -1));
     };
 
-    /* ── Affiliate wrapper ── */
-    const AffiliateWrap = ({
-        children,
-        className = "",
-    }: {
-        children: React.ReactNode;
-        className?: string;
-    }) => {
-        if (isLimitReached) return <div className={className}>{children}</div>;
-        return (
-            <a
-                rel="noopener noreferrer"
-                className={className}
-                onClick={() => {
-                    const data = increaseAffiliateCount();
-                    if (data.count >= data.max) setIsLimitReached(true);
-                }}
-            >
-                {children}
-            </a>
-        );
-    };
+    const onAffiliateClick = useCallback(() => setIsLimitReached(true), []);
 
     /* ── Loading / empty states ── */
     if (loading) return (
@@ -163,8 +181,8 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                     50%     { opacity:0.42; transform:scale(0.76); }
                 }
                 @keyframes sl-progress {
-                    from { width:0; }
-                    to   { width:100%; }
+                    from { transform:scaleX(0); }
+                    to   { transform:scaleX(1); }
                 }
                 @keyframes sl-fadeUp {
                     from { opacity:0; transform:translateY(16px); }
@@ -178,6 +196,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                 /* floating orbs */
                 .sl-float  { animation: sl-drift 20s ease-in-out infinite; will-change: transform; }
                 .sl-eyedot { animation: sl-pulse 2s ease-in-out infinite; }
+                .sl-slide:not([data-active]) .sl-eyedot { animation-play-state: paused; } /* slide đang ẩn không cần chạy */
 
                 /* content entry — triggers when article gets data-active */
                 .sl-slide[data-active] .sl-eyebrow { animation: sl-revealX 0.55s cubic-bezier(.22,1,.36,1) 0.05s both; }
@@ -255,6 +274,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
             `}</style>
 
             <section
+                ref={pauseRef}
                 className="sl-h relative w-full overflow-hidden select-none bg-[#191B24]"
                 style={{ zIndex: 30 }}
                 aria-roledescription="carousel"
@@ -329,8 +349,8 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                                 }}
                             >
                                 {/* Background image */}
-                                <NextImage
-                                    src={(slide.thumb_url?.startsWith('http') ? slide.thumb_url : `https://phimimg.com/${slide.thumb_url}`)}
+                                <MovieImage
+                                    movie={slide} prefer="thumb"
                                     alt={slide.name ?? ""}
                                     fill
                                     sizes="100vw"
@@ -390,7 +410,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                                         </span>
 
                                         {/* Movie title */}
-                                        <h1
+                                        <h2
                                             className="sl-title"
                                             style={{
                                                 color: "#7DD3FC",
@@ -458,7 +478,7 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
 
                                         {/* CTA buttons */}
                                         <div className="sl-btns" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                            <AffiliateWrap>
+                                            <AffiliateWrap limitReached={isLimitReached} onLimitReached={onAffiliateClick}>
                                                 <Link href={`/xem-phim/${slide.slug}`}>
                                                     <button
                                                         className="sl-cta-fill"
@@ -580,12 +600,14 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                                     : "0 0 0 1.5px rgba(255,255,255,0.12)",
                             }}
                         >
-                            <NextImage
-                                src={(s.thumb_url?.startsWith('http') ? s.thumb_url : `https://phimimg.com/${s.thumb_url}`)}
+                            <MovieImage
+                                movie={s} prefer="thumb"
                                 alt={s.name ?? ""}
                                 width={72}
                                 height={40}
                                 style={{
+                                    /* Ghi rõ kích thước: Tailwind đặt img { height: auto } → ảnh bị đổi 1 chiều, Next cảnh báo */
+                                    width: 72, height: 40,
                                     objectFit: "cover",
                                     display: "block",
                                     borderRadius: 5,
@@ -608,8 +630,10 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                 >
                     <div
                         key={progKey}
+                        onAnimationEnd={advance}
                         style={{
-                            height: "100%", width: 0,
+                            height: "100%", width: "100%",
+                            transform: "scaleX(0)", transformOrigin: "left center",
                             background: "linear-gradient(90deg, #10b981, #22d3a5, #10b981)",
                             boxShadow: "0 0 12px rgba(34,211,165,0.45)",
                             animationName: "sl-progress",

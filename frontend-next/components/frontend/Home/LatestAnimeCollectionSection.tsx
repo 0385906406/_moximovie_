@@ -6,53 +6,12 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Play, Info } from "lucide-react";
 import { movieService } from "@/services/movieService";
 import type { Movie } from "@/types/movie";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
+import { usePauseOffscreen } from "@/hooks/usePauseOffscreen";
 
 const SLIDE_INTERVAL = 10000;
 const SWIPE_THRESHOLD = 50;
 
-const STYLES = `
-  .as-root * { box-sizing: border-box; }
-
-  .as-stage { height: 600px; }
-  @media (max-width: 1179px) { .as-stage { height: 520px; } }
-  @media (max-width: 767px)  { .as-stage { height: 440px; } }
-
-  @keyframes asSlideInL  { from{opacity:0;transform:translateX(60px) scale(0.98)} to{opacity:1;transform:none} }
-  @keyframes asSlideInR  { from{opacity:0;transform:translateX(-60px) scale(0.98)} to{opacity:1;transform:none} }
-  @keyframes asSlideOutL { from{opacity:1;transform:none} to{opacity:0;transform:translateX(-60px) scale(0.98)} }
-  @keyframes asSlideOutR { from{opacity:1;transform:none} to{opacity:0;transform:translateX(60px) scale(0.98)} }
-  .as-in-l  { animation: asSlideInL  0.65s cubic-bezier(0.16,1,0.3,1) forwards }
-  .as-in-r  { animation: asSlideInR  0.65s cubic-bezier(0.16,1,0.3,1) forwards }
-  .as-out-l { animation: asSlideOutL 0.65s cubic-bezier(0.16,1,0.3,1) forwards }
-  .as-out-r { animation: asSlideOutR 0.65s cubic-bezier(0.16,1,0.3,1) forwards }
-
-  @keyframes asUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
-  .as-s1 { animation: asUp 0.5s 0.05s cubic-bezier(0.16,1,0.3,1) both }
-  .as-s2 { animation: asUp 0.5s 0.12s cubic-bezier(0.16,1,0.3,1) both }
-  .as-s3 { animation: asUp 0.5s 0.20s cubic-bezier(0.16,1,0.3,1) both }
-  .as-s4 { animation: asUp 0.5s 0.28s cubic-bezier(0.16,1,0.3,1) both }
-  .as-s5 { animation: asUp 0.5s 0.36s cubic-bezier(0.16,1,0.3,1) both }
-
-  @keyframes asKB { from{transform:scale(1) translate(0,0)} to{transform:scale(1.07) translate(-1%,-0.5%)} }
-  .as-kb { animation: asKB var(--dur,10s) linear forwards }
-
-  @keyframes asProgress { from{transform:scaleX(0)} to{transform:scaleX(1)} }
-  .as-progress { transform-origin:left; animation: asProgress var(--dur,10s) linear forwards }
-
-  @keyframes asPing { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.55);opacity:0.35} }
-  .as-ping { animation: asPing 1.6s ease-in-out infinite }
-
-  .as-strip::-webkit-scrollbar { display:none }
-  .as-strip { -ms-overflow-style:none; scrollbar-width:none; gap:6px }
-  @media (max-width: 767px) { .as-strip { gap:4px } }
-
-  .as-thumb { transition: all 0.35s cubic-bezier(0.16,1,0.3,1) }
-  .as-thumb:not(.active):hover { opacity:0.75!important; transform:translateY(-3px) scale(1.05)!important }
-
-  .as-arrow-btn { transition: all 0.2s ease }
-  .as-arrow-btn:hover { background: rgba(34,211,165,0.15)!important; border-color: rgba(34,211,165,0.5)!important; color: #22d3a5!important }
-`;
 
 const stripHtml = (html: string) => html.replace(/<[^>]*>/g, "").trim();
 
@@ -63,9 +22,9 @@ function formatTime(minutes: number) {
     return h > 0 ? `${h}h ${m > 0 ? `${m}m` : ""}`.trim() : `${m}m`;
 }
 
-const BgImage = ({ src, alt }: { src: string; alt: string }) => (
-    <Image
-        src={src} alt={alt}
+const BgImage = ({ movie, alt }: { movie: Movie; alt: string }) => (
+    <MovieImage
+        movie={movie} prefer="thumb" alt={alt}
         fill
         sizes="100vw"
         quality={75}
@@ -86,15 +45,10 @@ const LatestAnimeCollectionSection = () => {
     const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
     const dragStartX   = useRef<number | null>(null);
     const thumbsRef    = useRef<HTMLDivElement>(null);
-    const styleInj     = useRef(false);
+    /* Ngoài màn hình: dừng Ken Burns/ping (CSS) và dừng tự chuyển slide (interval) */
+    const [onScreen, setOnScreen] = useState(false);
+    const rootRef = usePauseOffscreen<HTMLDivElement>("0px", setOnScreen);
 
-    useEffect(() => {
-        if (styleInj.current) return;
-        const s = document.createElement("style");
-        s.textContent = STYLES;
-        document.head.appendChild(s);
-        styleInj.current = true;
-    }, []);
 
     useEffect(() => { movieService.dataAnimeMovies().then(setDatas); }, []);
 
@@ -108,10 +62,12 @@ const LatestAnimeCollectionSection = () => {
     }, [datas.length]);
 
     useEffect(() => {
-        if (!datas.length) return;
+        if (!datas.length || !onScreen) return;
+        /* Quay lại màn hình → chạy lại thanh tiến trình từ đầu cùng lúc với interval, không bị lệch */
+        setPK(k => k + 1);
         startInterval();
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-    }, [datas.length, startInterval]);
+    }, [datas.length, onScreen, startInterval]);
 
     const changeTo = useCallback((direction: "left" | "right", target?: number) => {
         if (isAnimating || !datas.length) return;
@@ -147,7 +103,7 @@ const LatestAnimeCollectionSection = () => {
     };
     const clrDrag = () => { dragStartX.current = null; };
 
-    if (!datas.length) return <div className="w-full" style={{ height: 560 }} />;
+    if (!datas.length) return <div ref={rootRef} className="w-full" style={{ height: 560 }} />;
 
     const slide     = datas[current];
     const prevSlide = prevIdx !== null ? datas[prevIdx] : null;
@@ -156,7 +112,7 @@ const LatestAnimeCollectionSection = () => {
     const overview  = slide.content ? stripHtml(slide.content) : "";
 
     return (
-        <div className="as-root w-full px-3 sm:px-5 xl:px-6 pt-4 pb-10">
+        <div ref={rootRef} className="as-root w-full px-3 sm:px-5 xl:px-6 pt-4 pb-10">
 
             {/* ── Section header ── */}
             <div className="flex items-center justify-between mb-4">
@@ -181,11 +137,11 @@ const LatestAnimeCollectionSection = () => {
                 {/* BG images */}
                 {prevSlide && (
                     <div key={`p-${prevIdx}`} className={`absolute inset-0 ${outCls}`}>
-                        <BgImage src={(prevSlide.thumb_url?.startsWith('http') ? prevSlide.thumb_url : `https://phimimg.com/${prevSlide.thumb_url}`)} alt="" />
+                        <BgImage movie={prevSlide} alt="" />
                     </div>
                 )}
                 <div key={`c-${current}`} className={`absolute inset-0 ${isAnimating ? inCls : ""}`}>
-                    <BgImage src={(slide.thumb_url?.startsWith('http') ? slide.thumb_url : `https://phimimg.com/${slide.thumb_url}`)} alt={slide.name ?? ""} />
+                    <BgImage movie={slide} alt={slide.name ?? ""} />
                 </div>
 
                 {/* Gradient overlays */}
@@ -248,7 +204,7 @@ const LatestAnimeCollectionSection = () => {
 
                         {/* Title */}
                         <div className="as-s2">
-                            <h1 style={{
+                            <h3 style={{
                                 fontFamily: "var(--font-primary)",
                                 fontSize: "clamp(1.5rem,3.8vw,3rem)",
                                 fontWeight: 800,
@@ -395,8 +351,8 @@ const LatestAnimeCollectionSection = () => {
                                         transition: "all 0.35s cubic-bezier(0.16,1,0.3,1)",
                                     }}
                                 >
-                                    <Image
-                                        src={(item.poster_url || item.thumb_url?.startsWith('http') ? item.poster_url || item.thumb_url : `https://phimimg.com/${item.poster_url || item.thumb_url}`)}
+                                    <MovieImage
+                                        movie={item} prefer="poster"
                                         alt={item.name ?? ""} loading="lazy"
                                         fill
                                         sizes="(max-width: 640px) 8vw, 64px"

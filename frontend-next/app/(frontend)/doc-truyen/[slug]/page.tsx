@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { comicService } from "@/services/comicService";
 import Breadcrumb from "@/components/frontend/Breadcrumb";
+import SEO from "@/components/frontend/SEO";
 import ComicSidebar from "@/components/frontend/ComicDetail/ComicSidebar";
 import type { Comic } from "@/types/comic";
 
@@ -171,8 +172,18 @@ export default function ComicDetailPage() {
         </div>
     );
 
+    const plain = (comic.content ?? "").replace(/<[^>]*>/g, " ").replace(/s+/g, " ").trim();
+
     return (
         <div className="cdp-root">
+            <SEO
+                title={`${comic.name} | Đọc Truyện Tranh Online | MoxiMovie`}
+                description={plain ? plain.slice(0, 160) : `Đọc truyện ${comic.name} miễn phí, cập nhật nhanh, hình ảnh sắc nét tại MoxiMovie.`}
+                canonical={`https://www.moximovie.click/doc-truyen/${comic.slug}`}
+                image={comic.thumb_full}
+                type="collection"
+                name={comic.name}
+            />
             <Breadcrumb />
 
             <div className="max-w-[1640px] mx-auto px-3 lg:px-5 xl:px-6 mt-4">

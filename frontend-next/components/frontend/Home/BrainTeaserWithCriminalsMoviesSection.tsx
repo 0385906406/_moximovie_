@@ -3,10 +3,11 @@
 import { useEffect, useState , memo } from "react";
 import { movieService } from "@/services/movieService";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import { Navigation } from "swiper/modules";
 import Link from "next/link";
 import type { Movie } from "@/types/movie";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
 function SkeletonCard() {
     return (
@@ -96,8 +97,8 @@ function BrainTeaserWithCriminalsMoviesSection() {
 
                                         {/* POSTER */}
                                         <div className="movie-card relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "2/3" }}>
-                                            <Image
-                                                src={(movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)}
+                                            <MovieImage
+                                                movie={movie} prefer="poster"
                                                 alt={movie.name}
                                                 fill
                                                 sizes="(max-width: 640px) 30vw, 200px"
@@ -161,28 +162,6 @@ function BrainTeaserWithCriminalsMoviesSection() {
                 </Swiper>
             )}
 
-            <style>{`
-                @media (max-width: 639px) {
-                    .brainteaser-swiper .swiper-button-next,
-                    .brainteaser-swiper .swiper-button-prev { display: none !important; }
-                }
-                .brainteaser-swiper .swiper-button-next,
-                .brainteaser-swiper .swiper-button-prev {
-                    width: 32px; height: 32px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    transition: all 0.25s ease; top: 38%;
-                }
-                .brainteaser-swiper .swiper-button-next:hover,
-                .brainteaser-swiper .swiper-button-prev:hover {
-                    background: rgba(148,163,184,0.15); border-color: rgba(148,163,184,0.4);
-                }
-                .brainteaser-swiper .swiper-button-next::after,
-                .brainteaser-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
-                .brainteaser-swiper .swiper-button-disabled { opacity: 0 !important; }
-                .brainteaser-swiper { overflow: hidden !important; }
-                .brainteaser-swiper .swiper-wrapper { overflow: visible; }
-            `}</style>
         </div>
     );
 }

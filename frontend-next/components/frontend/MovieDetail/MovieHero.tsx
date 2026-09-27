@@ -1,8 +1,10 @@
 import React from "react";
+import MovieImage from "@/components/frontend/MovieImage";
+import type { MovieImageFields } from "@/lib/movieImage";
 
 interface MovieHeroProps {
     movieName?: string;
-    thumbUrl?: string;
+    movie?: MovieImageFields | null;
     isPlayerOpen: boolean;
     onClosePlayer: () => void;
 }
@@ -14,14 +16,15 @@ interface MovieHeroProps {
  */
 const MovieHero: React.FC<MovieHeroProps> = ({
     movieName,
-    thumbUrl,
+    movie,
 }) => {
     return (
         <div className="relative w-full h-60 sm:h-[430px] lg:h-[590px] xl:h-[792px] overflow-hidden text-white select-none bg-[#282b3a] z-10">
             {/* Ảnh nền phim */}
-            <img
-                src={thumbUrl}
-                alt={movieName}
+            {movie && <MovieImage
+                movie={movie} prefer="thumb"
+                alt={movieName ?? ""}
+                fill sizes="100vw" quality={80} priority
                 className="
                             absolute inset-0 w-full h-full 
                             object-cover object-center
@@ -29,11 +32,10 @@ const MovieHero: React.FC<MovieHeroProps> = ({
                             transition-opacity duration-700
                             cursor-pointer
                         "
-                loading="lazy"
                 onLoad={(e) => {
                     e.currentTarget.style.opacity = "1";
                 }}
-            />
+            />}
 
             {/* OVERLAY TỔNG HỢP */}
             <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">

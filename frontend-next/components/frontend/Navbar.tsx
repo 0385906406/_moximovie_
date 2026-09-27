@@ -17,6 +17,7 @@ import type { Movie } from "@/types/movie";
 import { categories } from "@/data/category";
 import { countries } from "@/data/country";
 import { ThreeDot } from "react-loading-indicators";
+import MovieImage from "@/components/frontend/MovieImage";
 
 const NavbarItem = ({ to, children, isActive }: NavbarItemProps) => (
     <Button
@@ -55,7 +56,6 @@ const Navbar = () => {
     const categoryMenuRef  = useRef<HTMLDivElement | null>(null);
     const countriesMenuRef = useRef<HTMLDivElement | null>(null);
     const debounceTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const mobileDebounce   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [visible,            setVisible]            = useState(true);
     const [atTop,              setAtTop]              = useState(true);
@@ -80,9 +80,14 @@ const Navbar = () => {
 
     /* ── Scroll ── */
     useEffect(() => {
-        const fn = () => { setVisible(true); setAtTop(window.scrollY < 50); };
-        window.addEventListener("scroll", fn);
-        return () => window.removeEventListener("scroll", fn);
+        let raf = 0;
+        /* Gộp theo frame; setState cùng giá trị thì React bỏ qua, không render lại Navbar */
+        const fn = () => {
+            if (raf) return;
+            raf = requestAnimationFrame(() => { raf = 0; setVisible(true); setAtTop(window.scrollY < 50); });
+        };
+        window.addEventListener("scroll", fn, { passive: true });
+        return () => { window.removeEventListener("scroll", fn); cancelAnimationFrame(raf); };
     }, []);
 
     /* ── Khóa body scroll khi mobile search overlay mở ── */
@@ -104,34 +109,26 @@ const Navbar = () => {
         return () => document.removeEventListener("mousedown", fn);
     }, [isSearchOpen, isCategoryOpen, isCountriesOpen]);
 
-    /* ── Debounce search desktop ── */
+    /* ── Debounce search (dùng chung desktop + mobile, trước đây mobile gọi API 2 lần) ── */
     useEffect(() => {
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        if (!query.trim()) { setDataSearch([]); setIsSearchOpen(false); return; }
+        if (!query.trim()) { setDataSearch([]); setIsSearchOpen(false); setLoading(false); return; }
+        /* Gõ tiếp khi request cũ chưa về → bỏ kết quả cũ, không để nó ghi đè kết quả mới */
+        let stale = false;
         debounceTimer.current = setTimeout(async () => {
             setLoading(true);
             try {
                 const res = await movieService.dataSearch(query);
+                if (stale) return;
                 setDataSearch(res.items || []);
                 setIsSearchOpen(true);
-            } finally { setLoading(false); }
+            } catch (e) {
+                if (!stale) setDataSearch([]);
+                console.error("Search error:", e);
+            } finally { if (!stale) setLoading(false); }
         }, DEBOUNCE_MS);
-        return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+        return () => { stale = true; if (debounceTimer.current) clearTimeout(debounceTimer.current); };
     }, [query]);
-
-    /* ── Debounce search mobile ── */
-    const handleMobileQueryChange = (value: string) => {
-        setQuery(value);
-        if (mobileDebounce.current) clearTimeout(mobileDebounce.current);
-        if (!value.trim()) { setDataSearch([]); return; }
-        mobileDebounce.current = setTimeout(async () => {
-            setLoading(true);
-            try {
-                const res = await movieService.dataSearch(value);
-                setDataSearch(res.items || []);
-            } finally { setLoading(false); }
-        }, DEBOUNCE_MS);
-    };
 
     const goHome = () => {
         if (pathname !== "/phimhay") {
@@ -153,20 +150,24 @@ const Navbar = () => {
 
     const goToSearchPage = (q: string) => {
         if (!q.trim()) return;
+        /* Enter trước khi hết debounce → huỷ lượt tìm đang chờ, không để dropdown tự bật lại */
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
         addHistory(q);
         setIsSearchOpen(false);
         setIsMobileSearchOpen(false);
         router.push(`/tim-kiem?keyword=${encodeURIComponent(q.trim())}`);
     };
 
-    /* ── Search result item ── */
-    const SearchItem = ({ item, onClick }: { item: Movie; onClick: () => void }) => (
-        <Link href={`/phim/${item.slug}`}
+    /* ── Search result item ──
+       Hàm render thường, không phải component: component khai báo trong thân Navbar
+       là "loại mới" mỗi lần render → React gỡ/dựng lại toàn bộ danh sách mỗi phím gõ */
+    const searchItem = (item: Movie, onClick: () => void) => (
+        <Link key={item._id} href={`/phim/${item.slug}`}
             onClick={onClick}
             className="flex w-full items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] transition-colors cursor-pointer group"
         >
-            <img
-                src={(item.poster_url?.startsWith('http') ? item.poster_url : `https://phimimg.com/${item.poster_url}`)}
+            <MovieImage
+                plain movie={item} prefer="poster"
                 alt={item.name}
                 className="w-[44px] h-[60px] object-cover rounded-md flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity"
             />
@@ -187,7 +188,7 @@ const Navbar = () => {
         </Link>
     );
 
-    const ViewAllBtn = ({ q }: { q: string }) => (
+    const viewAllBtn = (q: string) => (
         <div className="border-t border-white/[0.07] px-3 py-2.5">
             <button
                 onClick={() => goToSearchPage(q)}
@@ -248,11 +249,11 @@ const Navbar = () => {
             `}</style>
 
             <nav className={cn(
-                "fixed inset-x-0 top-8 z-40 transition-all duration-300",
+                "fixed inset-x-0 top-8 z-40 transition-[transform,background-color,box-shadow] duration-300",
                 !visible && "-translate-y-full",
                 atTop
                     ? "bg-gradient-to-b from-black/75 via-black/30 to-transparent"
-                    : "bg-[#05070b]/90 backdrop-blur-2xl border-b border-white/[0.06] shadow-[0_4px_40px_rgba(0,0,0,0.55)]"
+                    : "bg-[#05070b]/[0.95] border-b border-white/[0.06] shadow-[0_4px_40px_rgba(0,0,0,0.55)]"
             )}>
                 <div className="mx-auto flex h-16 max-w-8xl items-center justify-between px-3 lg:px-5 xl:px-6">
 
@@ -309,7 +310,7 @@ const Navbar = () => {
                                     <ChevronDown size={13} className={cn("transition-transform duration-200", isCategoryOpen && "rotate-180")} />
                                 </button>
                                 {isCategoryOpen && (
-                                    <div className="nb-dropdown absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 rounded-2xl border border-white/[0.08] bg-[#0a0d14]/96 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-50">
+                                    <div className="nb-dropdown absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 rounded-2xl border border-white/[0.08] bg-[#0a0d14]/[0.98] shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-50">
                                         <div className="px-4 py-2.5 border-b border-white/[0.06]">
                                             <span className="text-[10px] font-bold uppercase tracking-widest text-[#22d3a5]/70">Thể Loại</span>
                                         </div>
@@ -341,7 +342,7 @@ const Navbar = () => {
                                     <ChevronDown size={13} className={cn("transition-transform duration-200", isCountriesOpen && "rotate-180")} />
                                 </button>
                                 {isCountriesOpen && (
-                                    <div className="nb-dropdown absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[400px] rounded-2xl border border-white/[0.08] bg-[#0a0d14]/96 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-50">
+                                    <div className="nb-dropdown absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[400px] rounded-2xl border border-white/[0.08] bg-[#0a0d14]/[0.98] shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden z-50">
                                         <div className="px-4 py-2.5 border-b border-white/[0.06]">
                                             <span className="text-[10px] font-bold uppercase tracking-widest text-[#22d3a5]/70">Quốc Gia</span>
                                         </div>
@@ -406,7 +407,7 @@ const Navbar = () => {
 
                             {/* Dropdown */}
                             {isSearchOpen && (
-                                <div className="nb-dropdown absolute right-0 left-auto mt-2 w-[340px] rounded-2xl border border-white/[0.08] bg-[#0a0d14]/96 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-xl max-h-[340px] overflow-y-auto text-white">
+                                <div className="nb-dropdown absolute right-0 left-auto mt-2 w-[340px] rounded-2xl border border-white/[0.08] bg-[#0a0d14]/[0.98] shadow-[0_20px_60px_rgba(0,0,0,0.8)] max-h-[340px] overflow-y-auto text-white">
                                     {!query ? (
                                         searchHistory.length > 0 && (
                                             <>
@@ -451,11 +452,9 @@ const Navbar = () => {
                                                 </div>
                                             ) : dataSearch.length > 0 ? (
                                                 <>
-                                                    {dataSearch.map((item) => (
-                                                        <SearchItem key={item._id} item={item}
-                                                            onClick={() => { setQuery(item.name); setIsSearchOpen(false); addHistory(item.name); }} />
-                                                    ))}
-                                                    <ViewAllBtn q={query} />
+                                                    {/* Xoá query (không đặt = tên phim): đặt tên phim sẽ kích hoạt tìm lại → dropdown tự bật lên ở trang mới */}
+                                                    {dataSearch.map((item) => searchItem(item, () => { setQuery(""); setIsSearchOpen(false); addHistory(item.name); }))}
+                                                    {viewAllBtn(query)}
                                                 </>
                                             ) : (
                                                 <div className="px-4 py-6 text-[12px] text-white/35 text-center">
@@ -491,7 +490,7 @@ const Navbar = () => {
                 Mobile search overlay
             ══════════════════════════════════════════════════════════ */}
             {isMobileSearchOpen && (
-                <div className="nb-mobile-search fixed inset-x-0 top-[72px] z-40 bg-[#05070b]/96 backdrop-blur-2xl border-b border-white/[0.07] xl:hidden shadow-[0_8px_40px_rgba(0,0,0,0.6)]">
+                <div className="nb-mobile-search fixed inset-x-0 top-24 z-40 bg-[#05070b]/[0.98] border-b border-white/[0.07] xl:hidden shadow-[0_8px_40px_rgba(0,0,0,0.6)]">
                     {/* Input row */}
                     <div className="px-3 pt-3 pb-2.5 flex items-center gap-2">
                         <button type="button" onClick={() => setIsMobileSearchOpen(false)}
@@ -515,7 +514,7 @@ const Navbar = () => {
                                 placeholder="Tìm kiếm phim, diễn viên…"
                                 value={query}
                                 autoFocus
-                                onChange={(e) => handleMobileQueryChange(e.target.value)}
+                                onChange={(e) => setQuery(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === "Enter") goToSearchPage(query); }}
                                 className="nb-search-input w-full rounded-full border border-white/[0.1] bg-white/[0.06] pl-9 pr-4 py-2.5 text-[14px] text-white placeholder:text-white/30 outline-none focus:border-[#22d3a5]/50 transition-all"
                             />
@@ -575,17 +574,13 @@ const Navbar = () => {
                                         </div>
                                     ) : dataSearch.length > 0 ? (
                                         <>
-                                            {dataSearch.map((item) => (
-                                                <SearchItem key={item._id} item={item}
-                                                    onClick={() => {
-                                                        setQuery(item.name);
-                                                        setIsSearchOpen(false);
-                                                        setIsMobileSearchOpen(false);
-                                                        addHistory(item.name);
-                                                    }}
-                                                />
-                                            ))}
-                                            <ViewAllBtn q={query} />
+                                            {dataSearch.map((item) => searchItem(item, () => {
+                                                setQuery("");
+                                                setIsSearchOpen(false);
+                                                setIsMobileSearchOpen(false);
+                                                addHistory(item.name);
+                                            }))}
+                                            {viewAllBtn(query)}
                                         </>
                                     ) : query ? (
                                         <div className="px-4 py-6 text-[12px] text-white/35 text-center">

@@ -10,6 +10,7 @@ import type { Server } from "@/types/server";
 import MovieCard from "../MovieCard";
 import { movieService } from "@/services/movieService";
 import { ThreeDot } from "react-loading-indicators";
+import MovieImage from "@/components/frontend/MovieImage";
 
 type TabKey = "tap-phim" | "the-loai" | "dao-dien" | "dien-vien";
 
@@ -133,9 +134,9 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
                                                     }
                                                 >
                                                     {/* Ảnh nền: chỉ chiếm 65% bên phải */}
-                                                    <img
-                                                        src={movie.poster_url}
-                                                        alt={ep.name}
+                                                    <MovieImage
+                                                        plain movie={movie} prefer="poster"
+                                                        alt={ep.name ?? ""}
                                                         className="
                                                             absolute inset-y-0 right-0
                                                             w-[35%] h-full

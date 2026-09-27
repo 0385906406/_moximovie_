@@ -1,11 +1,13 @@
 "use client";
 
-import { memo, useRef, useState, useCallback, useEffect } from "react";
+import { memo, useRef, useState, useCallback, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Play, Clock, CalendarDays, Film, PlayCircle } from "lucide-react";
 import type { Movie } from "@/types/movie";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
+import { getImageProps } from "next/image";
+import { movieImageSources } from "@/lib/movieImage";
 
 /* ══════════════════════════════════
    TRAILER FETCH  (module-level cache)
@@ -57,93 +59,167 @@ function qualityStyle(q?: string): { bg: string; color: string } {
 }
 
 /* ══════════════════════════════════
+   POPUP TIMING (dùng chung mọi card)
+══════════════════════════════════ */
+const OPEN_DELAY  = 550;  // giữ chuột bao lâu thì mở popup
+const WARM_DELAY  = 120;  // vừa đóng popup khác → mở nhanh khi lướt sang card kế
+const WARM_WINDOW = 450;
+const CLOSE_DELAY = 140;  // cho phép di chuột từ card sang popup mà không bị đóng
+const POPUP_THUMB_SIZES = "420px";
+
+/* Chỉ 1 popup mở tại 1 thời điểm */
+let closeActive: (() => void) | null = null;
+let lastCloseAt = 0;
+
+/* Đang cuộn thì card lướt qua dưới con trỏ → không được bật popup */
+let lastScrollAt = 0;
+if (typeof window !== "undefined") {
+    window.addEventListener("scroll", () => { lastScrollAt = Date.now(); }, { passive: true, capture: true });
+}
+
+/* Điện thoại/tablet không có hover thật → không mở popup (tap vào card là vào trang phim) */
+const canHover = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+/* Tải trước ảnh ngang của popup trong lúc chờ mở → popup hiện ra là có ảnh ngay, không bị ô đen */
+const _preloaded = new Set<string>();
+function preloadPopupThumb(movie: Movie) {
+    const src = movieImageSources(movie, "thumb")[0];
+    if (!src || _preloaded.has(src)) return;
+    _preloaded.add(src);
+    const { props } = getImageProps({ src, alt: "", fill: true, sizes: POPUP_THUMB_SIZES, quality: 80 });
+    const img = new Image();
+    img.sizes = POPUP_THUMB_SIZES;
+    if (props.srcSet) img.srcset = props.srcSet;
+    img.src = props.src;
+}
+
+type Phase = "closed" | "open" | "closing";
+interface Geo { top: number; left: number; width: number; originX: number; originY: number; fromScale: number }
+
+function calcGeo(rect: DOMRect, height: number): Geo {
+    const width = Math.round(Math.min(420, Math.max(280, rect.width * 2.3)));
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    const left = Math.min(Math.max(cx - width / 2, 8), window.innerWidth - width - 8);
+    const top  = Math.min(Math.max(cy - height / 2, 8), window.innerHeight - height - 8);
+
+    /* Popup bắt đầu đúng bằng kích thước card rồi phóng to ra → cảm giác card "nở" thành popup */
+    return { top, left, width, originX: cx - left, originY: cy - top, fromScale: rect.width / width };
+}
+
+/* ══════════════════════════════════
    MOVIE CARD
 ══════════════════════════════════ */
-function MovieCard({ movie }: { movie: Movie }) {
-    const getImg = (url?: string) => {
-        if (!url) return "";
-        if (url.startsWith("http")) return url;
-        return (url?.startsWith('http') ? url : `https://phimimg.com/${url}`);
-    };
-    const poster = getImg(movie.poster_url);
-    const thumb  = movie.thumb_url ? getImg(movie.thumb_url) : poster;
+/* priority: card ở hàng đầu (ảnh lớn nhất lúc mở trang — LCP) → tải ngay, không lazy */
+function MovieCard({ movie, priority = false }: { movie: Movie; priority?: boolean }) {
 
     const wrapRef    = useRef<HTMLDivElement>(null);
+    const popupRef   = useRef<HTMLDivElement>(null);
     const enterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const readyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [hovered,      setHovered]      = useState(false);
-    const [pos,          setPos]          = useState({ top: 0, left: 0, width: 300 });
+    const [phase, setPhase] = useState<Phase>("closed");
+    const phaseRef = useRef<Phase>("closed");
+    phaseRef.current = phase;
+
+    const [geo, setGeo] = useState<Geo | null>(null);
     /* undefined = fetching | null = no trailer | string = YT key */
     const [trailerKey,   setTrailerKey]   = useState<string | null | undefined>(undefined);
     const [thumbHovered, setThumbHovered] = useState(false);
+    const [trailerOn,    setTrailerOn]    = useState(false);  // iframe đã mount (giữ nguyên tới khi đóng popup)
+    const [trailerReady, setTrailerReady] = useState(false);  // iframe đã load xong → mới hiện, tránh chớp đen
 
-    /* ── Center popup over the card ── */
-    const calcPos = useCallback(() => {
-        if (!wrapRef.current) return null;
-        const rect = wrapRef.current.getBoundingClientRect();
-        const pw = Math.max(280, Math.round(rect.width * 2.3));
-        const cx = rect.left + rect.width / 2;
+    const clearTimer = (t: React.MutableRefObject<ReturnType<typeof setTimeout> | null>) => {
+        if (t.current) { clearTimeout(t.current); t.current = null; }
+    };
 
-        let left = cx - pw / 2;
-        if (left < 8)                          left = 8;
-        if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-
-        const estimatedH = pw * 0.5625 + 215;
-        let top = rect.top + rect.height / 2 - estimatedH / 2;
-        if (top < 8)                                    top = 8;
-        if (top + estimatedH > window.innerHeight - 8)  top = window.innerHeight - estimatedH - 8;
-
-        return { top, left, width: pw };
+    const close = useCallback(() => {
+        clearTimer(enterTimer);
+        clearTimer(leaveTimer);
+        if (phaseRef.current === "open") setPhase("closing");
+        lastCloseAt = Date.now();
+        if (closeActive === close) closeActive = null;
     }, []);
+
+    const open = useCallback(() => {
+        const el = wrapRef.current;
+        if (!el || !el.matches(":hover") || Date.now() - lastScrollAt < 200) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+
+        if (closeActive && closeActive !== close) closeActive();
+        closeActive = close;
+
+        setGeo(calcGeo(rect, rect.width * 2.3 * 0.5625 + 200));
+        setPhase("open");
+        fetchTrailerKey(movie).then(setTrailerKey);
+    }, [close, movie]);
 
     const handleEnter = useCallback(() => {
-        if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
-        if (enterTimer.current) return;
-        enterTimer.current = setTimeout(() => {
-            enterTimer.current = null;
-            const p = calcPos();
-            if (!p) return;
-            setPos(p);
-            setTrailerKey(undefined);
-            setThumbHovered(false);
-            setHovered(true);
-            fetchTrailerKey(movie).then(k => setTrailerKey(k));
-        }, 650);
-    }, [calcPos, movie]);
+        if (!canHover()) return;
+        clearTimer(leaveTimer);
+        if (phaseRef.current === "open" || enterTimer.current) return;
+        preloadPopupThumb(movie);
+        const warm = Date.now() - lastCloseAt < WARM_WINDOW;
+        enterTimer.current = setTimeout(() => { enterTimer.current = null; open(); }, warm ? WARM_DELAY : OPEN_DELAY);
+    }, [open, movie]);
 
     const handleLeave = useCallback(() => {
-        if (enterTimer.current) { clearTimeout(enterTimer.current); enterTimer.current = null; }
-        leaveTimer.current = setTimeout(() => {
-            setHovered(false);
-            setThumbHovered(false);
-        }, 160);
-    }, []);
+        clearTimer(enterTimer);
+        if (phaseRef.current !== "open") return;
+        clearTimer(leaveTimer);
+        leaveTimer.current = setTimeout(close, CLOSE_DELAY);
+    }, [close]);
 
-    const cancelLeave = useCallback(() => {
-        if (leaveTimer.current) { clearTimeout(leaveTimer.current); leaveTimer.current = null; }
-    }, []);
+    const cancelLeave = useCallback(() => clearTimer(leaveTimer), []);
+
+    /* Đo chiều cao thật của popup trước khi vẽ → căn giữa chính xác, không tràn khỏi màn hình */
+    useLayoutEffect(() => {
+        if (phase !== "open" || !popupRef.current || !wrapRef.current) return;
+        const next = calcGeo(wrapRef.current.getBoundingClientRect(), popupRef.current.offsetHeight);
+        setGeo(g => (g && Math.abs(g.top - next.top) < 1 && Math.abs(g.left - next.left) < 1 ? g : next));
+    }, [phase]);
+
+    /* Cuộn trang / đổi kích thước → đóng popup thay vì đuổi theo card (tránh giật) */
+    useEffect(() => {
+        if (phase !== "open") return;
+        window.addEventListener("scroll", close, { passive: true, capture: true });
+        window.addEventListener("resize", close);
+        window.addEventListener("blur", close);
+        return () => {
+            window.removeEventListener("scroll", close, { capture: true });
+            window.removeEventListener("resize", close);
+            window.removeEventListener("blur", close);
+        };
+    }, [phase, close]);
+
+    /* Bắt đầu trailer khi rê vào vùng ảnh và đã có key */
+    useEffect(() => {
+        if (phase === "open" && thumbHovered && typeof trailerKey === "string") setTrailerOn(true);
+    }, [phase, thumbHovered, trailerKey]);
 
     useEffect(() => () => {
-        if (enterTimer.current) clearTimeout(enterTimer.current);
-        if (leaveTimer.current) clearTimeout(leaveTimer.current);
-    }, []);
+        clearTimer(enterTimer);
+        clearTimer(leaveTimer);
+        clearTimer(readyTimer);
+        if (closeActive === close) closeActive = null;
+    }, [close]);
 
-    useEffect(() => {
-        if (!hovered) return;
-        const update = () => { const p = calcPos(); if (p) setPos(p); };
-        window.addEventListener("scroll", update, { passive: true });
-        return () => window.removeEventListener("scroll", update);
-    }, [hovered, calcPos]);
+    const handleAnimationEnd = (e: React.AnimationEvent<HTMLDivElement>) => {
+        if (e.target !== e.currentTarget || e.animationName !== "mcPopOut") return;
+        clearTimer(readyTimer);
+        setPhase("closed");
+        setThumbHovered(false);
+        setTrailerOn(false);
+        setTrailerReady(false);
+    };
 
     const qs = qualityStyle(movie.quality);
     const isSeries = movie.type === "series";
-
-    /* Show iframe only when user hovers the thumb AND trailer key is ready */
-    const showTrailer = thumbHovered && typeof trailerKey === "string";
-    const ytSrc = showTrailer
-        ? `https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&modestbranding=1&rel=0&iv_load_policy=3`
-        : null;
+    const showTrailer = thumbHovered && trailerReady;
+    const trailerLoading = thumbHovered && (trailerKey === undefined || (typeof trailerKey === "string" && !trailerReady));
 
     return (
         <div ref={wrapRef} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
@@ -153,16 +229,17 @@ function MovieCard({ movie }: { movie: Movie }) {
             ━━━━━━━━━━━━━━━━━ */}
             <Link href={`/phim/${movie.slug}`} className="group block">
                 <div
-                    className="relative w-full aspect-[2/3] rounded-xl overflow-hidden"
+                    className="mc-frame relative w-full aspect-[2/3] rounded-xl overflow-hidden"
                     style={{ background: "rgba(255,255,255,0.04)", boxShadow: "0 4px 18px rgba(0,0,0,0.45)" }}
                 >
-                    {poster ? (
-                        <Image
-                            src={poster} alt={movie.name} fill
+                    {movie.poster_url || movie.thumb_url ? (
+                        <MovieImage
+                            movie={movie} prefer="poster" alt={movie.name} fill
                             sizes="(max-width: 640px) 33vw, (max-width: 1280px) 20vw, 14vw"
                             quality={75}
-                            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07]"
-                            loading="lazy"
+                            className="mc-zoom object-cover"
+                            priority={priority}
+                            loading={priority ? undefined : "lazy"}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -173,9 +250,9 @@ function MovieCard({ movie }: { movie: Movie }) {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10 pointer-events-none" />
 
                     {/* Hover overlay + play */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                    <div className="mc-fade absolute inset-0 flex items-center justify-center pointer-events-none"
                         style={{ background: "rgba(0,0,0,0.32)" }}>
-                        <div className="w-11 h-11 rounded-full flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300"
+                        <div className="mc-play w-11 h-11 rounded-full flex items-center justify-center"
                             style={{ background: "rgba(34,211,165,0.9)", boxShadow: "0 0 22px rgba(34,211,165,0.55)" }}>
                             <Play size={15} fill="white" strokeWidth={0} className="translate-x-[1px]" />
                         </div>
@@ -189,7 +266,7 @@ function MovieCard({ movie }: { movie: Movie }) {
                     )}
                     {isSeries && movie.episode_current && (
                         <span className="absolute top-1.5 right-1.5 px-1.5 py-[3px] rounded-md text-[10px] font-semibold leading-none text-white"
-                            style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                            style={{ background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.1)" }}>
                             {movie.episode_current}
                         </span>
                     )}
@@ -210,116 +287,110 @@ function MovieCard({ movie }: { movie: Movie }) {
 
             {/* ━━━━━━━━━━━━━━━━━
                 HOVER POPUP
-                Centered over the card — covers it completely.
-                Trailer plays only when user hovers the thumb area.
+                Nở ra từ đúng vị trí card, thu lại khi đóng.
+                Trailer chỉ chạy khi rê chuột vào vùng ảnh.
             ━━━━━━━━━━━━━━━━━ */}
-            {hovered && typeof document !== "undefined" && createPortal(
+            {phase !== "closed" && geo && createPortal(
                 <div
+                    ref={popupRef}
                     onMouseEnter={cancelLeave}
                     onMouseLeave={handleLeave}
+                    onAnimationEnd={handleAnimationEnd}
+                    className={phase === "open" ? "mc-pop mc-pop-in" : "mc-pop mc-pop-out"}
                     style={{
-                        position: "fixed",
-                        top: pos.top,
-                        left: pos.left,
-                        width: pos.width,
-                        zIndex: 9999,
-                        borderRadius: 16,
-                        overflow: "hidden",
-                        background: "linear-gradient(165deg,#181d2a 0%,#0d1018 100%)",
-                        border: "1px solid rgba(255,255,255,0.09)",
-                        boxShadow: "0 32px 90px rgba(0,0,0,0.95), 0 0 0 1px rgba(34,211,165,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
-                        transformOrigin: "center center",
-                        animation: "mcPop 0.22s cubic-bezier(.34,1.35,.64,1) forwards",
-                    }}
+                        top: geo.top,
+                        left: geo.left,
+                        width: geo.width,
+                        transformOrigin: `${geo.originX}px ${geo.originY}px`,
+                        "--mc-from": geo.fromScale,
+                    } as React.CSSProperties}
                 >
                     {/* ── Thumb / Trailer area ── */}
-                    <div
-                        className="relative w-full cursor-pointer"
+                    <Link
+                        href={`/phim/${movie.slug}`}
+                        className="relative block w-full overflow-hidden"
                         style={{ aspectRatio: "16/9", background: "#090b12" }}
                         onMouseEnter={() => setThumbHovered(true)}
                         onMouseLeave={() => setThumbHovered(false)}
                     >
-                        {/* Static thumbnail */}
-                        {thumb ? (
-                            <Image
-                                src={thumb} alt={movie.name} fill sizes="420px" quality={80}
-                                className="object-cover transition-opacity duration-300"
-                                style={{ opacity: showTrailer ? 0 : 1 }}
-                                priority
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center" style={{ background: "#131623" }}>
-                                <Film size={32} className="text-white/10" />
-                            </div>
-                        )}
+                        <MovieImage
+                            movie={movie} prefer="thumb" alt={movie.name} fill sizes={POPUP_THUMB_SIZES} quality={80}
+                            loading="eager"
+                            className="object-cover"
+                            style={{ opacity: showTrailer ? 0 : 1, transition: "opacity 0.35s ease" }}
+                        />
 
-                        {/* Trailer iframe — pointer-events:none so mouse events pass to container */}
-                        {ytSrc && (
+                        {/* Trailer — pointer-events:none để chuột vẫn thuộc về vùng ảnh */}
+                        {trailerOn && typeof trailerKey === "string" && (
                             <iframe
-                                src={ytSrc}
+                                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&modestbranding=1&rel=0&iv_load_policy=3&playsinline=1`}
                                 allow="autoplay; encrypted-media"
-                                allowFullScreen
-                                className="absolute inset-0 w-full h-full z-10 transition-opacity duration-300"
-                                style={{ border: "none", pointerEvents: "none", opacity: showTrailer ? 1 : 0 }}
+                                title={`Trailer ${movie.name}`}
+                                onLoad={() => {
+                                    clearTimer(readyTimer);
+                                    /* YouTube cần thêm chút thời gian sau onLoad mới bắt đầu phát */
+                                    readyTimer.current = setTimeout(() => setTrailerReady(true), 450);
+                                }}
+                                className="absolute inset-0 w-full h-full"
+                                style={{
+                                    border: "none", pointerEvents: "none",
+                                    opacity: showTrailer ? 1 : 0,
+                                    transition: "opacity 0.35s ease",
+                                }}
                             />
                         )}
 
-                        {/* Hint: hover to watch trailer */}
-                        {!thumbHovered && trailerKey !== null && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 transition-opacity duration-200"
-                                style={{ background: "rgba(0,0,0,0.18)", opacity: thumbHovered ? 0 : 1 }}>
-                                <div className="w-13 h-13 rounded-full flex items-center justify-center"
-                                    style={{ background: "rgba(34,211,165,0.85)", boxShadow: "0 0 28px rgba(34,211,165,0.45)" }}>
-                                    <Play size={18} fill="white" strokeWidth={0} className="translate-x-[1px]" />
-                                </div>
-                                {trailerKey !== undefined && (
-                                    <span className="text-[11px] text-white/60 font-medium tracking-wide">
-                                        Di chuột vào để xem trailer
-                                    </span>
-                                )}
+                        {/* Gợi ý: rê vào để xem trailer */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
+                            style={{ background: "rgba(0,0,0,0.18)", opacity: thumbHovered ? 0 : 1, transition: "opacity 0.25s ease" }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                                style={{ background: "rgba(34,211,165,0.85)", boxShadow: "0 0 28px rgba(34,211,165,0.45)" }}>
+                                <Play size={18} fill="white" strokeWidth={0} className="translate-x-[1px]" />
                             </div>
-                        )}
+                            {typeof trailerKey === "string" && (
+                                <span className="text-[11px] text-white/70 font-medium tracking-wide">
+                                    Di chuột vào để xem trailer
+                                </span>
+                            )}
+                        </div>
 
-                        {/* Loading: fetching trailer key */}
-                        {thumbHovered && trailerKey === undefined && (
-                            <div className="absolute inset-0 flex items-center justify-center z-20"
-                                style={{ background: "rgba(0,0,0,0.5)" }}>
-                                <PlayCircle size={32} className="animate-pulse" style={{ color: "#22d3a5" }} />
-                            </div>
-                        )}
+                        {/* Đang tải trailer */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                            style={{ background: "rgba(0,0,0,0.45)", opacity: trailerLoading ? 1 : 0, transition: "opacity 0.25s ease" }}>
+                            <PlayCircle size={32} className="animate-pulse" style={{ color: "#22d3a5" }} />
+                        </div>
 
-                        {/* No trailer available */}
-                        {thumbHovered && trailerKey === null && (
-                            <div className="absolute inset-0 flex items-center justify-center z-20"
-                                style={{ background: "rgba(0,0,0,0.35)" }}>
-                                <div className="w-12 h-12 rounded-full flex items-center justify-center"
-                                    style={{ background: "rgba(34,211,165,0.82)", boxShadow: "0 0 28px rgba(34,211,165,0.4)" }}>
-                                    <Play size={16} fill="white" strokeWidth={0} className="translate-x-[1px]" />
-                                </div>
+                        {/* Không có trailer */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
+                            style={{ background: "rgba(0,0,0,0.35)", opacity: thumbHovered && trailerKey === null ? 1 : 0, transition: "opacity 0.25s ease" }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                                style={{ background: "rgba(34,211,165,0.82)", boxShadow: "0 0 28px rgba(34,211,165,0.4)" }}>
+                                <Play size={16} fill="white" strokeWidth={0} className="translate-x-[1px]" />
                             </div>
-                        )}
+                            <span className="text-[11px] text-white/60 font-medium">Chưa có trailer</span>
+                        </div>
 
                         {/* Bottom gradient fade */}
-                        <div className="absolute inset-x-0 bottom-0 h-10 z-30 pointer-events-none"
+                        <div className="absolute inset-x-0 bottom-0 h-10 pointer-events-none"
                             style={{ background: "linear-gradient(to top,#0d1018,transparent)" }} />
 
                         {/* Badges */}
                         {movie.quality && (
-                            <span className="absolute top-3 left-3 z-30 px-2.5 py-1 rounded-lg text-[11px] font-bold"
+                            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-bold"
                                 style={{ background: qs.bg, color: qs.color }}>
                                 {movie.quality}
                             </span>
                         )}
                         {isSeries && movie.episode_current && (
-                            <span className="absolute top-3 right-3 z-30 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white"
-                                style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                            <span className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white"
+                                style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)" }}>
                                 {movie.episode_current}
                             </span>
                         )}
-                    </div>
+                    </Link>
 
                     {/* ── Info section ── */}
-                    <div className="px-4 pt-3.5 pb-4 flex flex-col gap-2.5">
+                    <div className="mc-pop-info px-4 pt-3.5 pb-4 flex flex-col gap-2.5">
                         <div>
                             <p className="text-white font-bold text-[15px] leading-snug line-clamp-2"
                                 dangerouslySetInnerHTML={{ __html: movie.name }} />
@@ -367,7 +438,7 @@ function MovieCard({ movie }: { movie: Movie }) {
                         {/* CTA */}
                         <Link
                             href={`/phim/${movie.slug}`}
-                            className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-[13px] transition-all duration-200 hover:brightness-110 active:scale-[0.97]"
+                            className="mc-cta flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-[13px]"
                             style={{
                                 background: "linear-gradient(135deg,#22d3a5,#0fb489)",
                                 color: "#041a11",
@@ -382,13 +453,6 @@ function MovieCard({ movie }: { movie: Movie }) {
                 </div>,
                 document.body
             )}
-
-            <style>{`
-                @keyframes mcPop {
-                    from { opacity: 0; transform: scale(0.87); }
-                    to   { opacity: 1; transform: scale(1); }
-                }
-            `}</style>
         </div>
     );
 }

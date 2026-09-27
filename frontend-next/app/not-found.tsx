@@ -25,6 +25,8 @@ export default function NotFoundPage() {
 
   return (
     <>
+      <title>Không tìm thấy trang | MoxiMovie</title>
+      <meta name="robots" content="noindex" />
       <style>{`
         /* ── root ── */
         .nf {

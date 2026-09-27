@@ -3,6 +3,7 @@
 import { useEffect, useState , memo } from "react";
 import { movieService } from "@/services/movieService";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import { Navigation } from "swiper/modules";
 import Link from "next/link";
 import Image from "next/image";
@@ -188,28 +189,6 @@ function MoviesInTheatersSection() {
                 </Swiper>
             )}
 
-            <style>{`
-                @media (max-width: 639px) {
-                    .theaters-swiper .swiper-button-next,
-                    .theaters-swiper .swiper-button-prev { display: none !important; }
-                }
-                .theaters-swiper .swiper-button-next,
-                .theaters-swiper .swiper-button-prev {
-                    width: 32px; height: 32px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    transition: all 0.25s ease; top: 38%;
-                }
-                .theaters-swiper .swiper-button-next:hover,
-                .theaters-swiper .swiper-button-prev:hover {
-                    background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.4);
-                }
-                .theaters-swiper .swiper-button-next::after,
-                .theaters-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
-                .theaters-swiper .swiper-button-disabled { opacity: 0 !important; }
-                .theaters-swiper { overflow: hidden !important; }
-                .theaters-swiper .swiper-wrapper { overflow: visible; }
-            `}</style>
         </div>
     );
 }

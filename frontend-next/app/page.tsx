@@ -48,16 +48,26 @@ function ParticleCanvas() {
 
         let raf: number;
         let frame = 0;
-        const draw = () => {
+        let last = 0;
+        /* Giảm chuyển động, màn nhỏ hoặc cảm ứng (điện thoại/tablet) → chỉ vẽ 1 khung tĩnh, đỡ tốn pin */
+        const staticOnly = window.matchMedia("(prefers-reduced-motion: reduce), (max-width: 767px), (pointer: coarse)").matches;
+        const draw = (now = 0) => {
+            /* ~30 khung/giây là đủ cho sao lấp lánh, bớt một nửa công việc so với 60fps */
+            if (!staticOnly) raf = requestAnimationFrame(draw);
+            if (now && now - last < 32) return;
+            /* k = số frame 60fps đã trôi qua → tốc độ sao/sao băng giữ nguyên dù vẽ thưa hơn */
+            const k = last ? Math.min((now - last) / 16.7, 4) : 1;
+            last = now;
             ctx.clearRect(0, 0, w, h);
-            frame++;
+            const prev = frame;
+            frame += k;
 
             /* spawn meteor occasionally */
-            if (frame % 180 === 0 && Math.random() > 0.4) spawnMeteor();
+            if (Math.floor(frame / 180) > Math.floor(prev / 180) && Math.random() > 0.4) spawnMeteor();
 
             /* draw stars */
             stars.forEach(s => {
-                s.pulse += s.pulseSpeed;
+                s.pulse += s.pulseSpeed * k;
                 const a = s.alpha * (0.5 + 0.5 * Math.sin(s.pulse));
                 const sx = (s.x / 1920) * w;
                 const sy = (s.y / 1080) * h;
@@ -77,7 +87,7 @@ function ParticleCanvas() {
             /* draw meteors */
             for (let i = meteors.length - 1; i >= 0; i--) {
                 const m = meteors[i];
-                m.life++;
+                m.life += k;
                 if (m.life > m.maxLife) { meteors.splice(i, 1); continue; }
                 const progress = m.life / m.maxLife;
                 const a = m.alpha * Math.sin(progress * Math.PI);
@@ -93,10 +103,8 @@ function ParticleCanvas() {
                 ctx.strokeStyle = grad;
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
-                m.x += m.vx; m.y += m.vy;
+                m.x += m.vx * k; m.y += m.vy * k;
             }
-
-            raf = requestAnimationFrame(draw);
         };
         draw();
         return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
@@ -151,16 +159,18 @@ function useCyclingTypewriter(started = true) {
     return { text: displayed, color: CYCLE_WORDS[wordIdx].color };
 }
 
-/* ── Aurora — 6 blobs đa màu ── */
+/* ── Aurora — 6 blobs đa màu ──
+   Không thêm filter blur: radial-gradient đã mờ dần sẵn, blur 60–90px trên khối đang chuyển động
+   buộc GPU làm mờ lại cả vùng lớn ở mỗi frame */
 function Aurora() {
     return (
         <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden">
-            <div className="absolute rounded-full" style={{ width: 900, height: 900, top: "-20%", left: "-15%", background: "radial-gradient(circle, #22d3a5 0%, transparent 65%)", opacity: 0.13, animation: "auroraDrift1 20s ease-in-out infinite alternate", filter: "blur(70px)" }} />
-            <div className="absolute rounded-full" style={{ width: 700, height: 700, top: "20%", right: "-18%", background: "radial-gradient(circle, #818cf8 0%, transparent 65%)", opacity: 0.11, animation: "auroraDrift2 25s ease-in-out infinite alternate", filter: "blur(80px)" }} />
-            <div className="absolute rounded-full" style={{ width: 600, height: 600, bottom: "-15%", left: "25%", background: "radial-gradient(circle, #4ade80 0%, transparent 65%)", opacity: 0.09, animation: "auroraDrift3 17s ease-in-out infinite alternate", filter: "blur(65px)" }} />
-            <div className="absolute rounded-full" style={{ width: 500, height: 500, top: "5%", left: "40%", background: "radial-gradient(circle, #38bdf8 0%, transparent 65%)", opacity: 0.08, animation: "auroraDrift4 28s ease-in-out infinite alternate", filter: "blur(90px)" }} />
-            <div className="absolute rounded-full" style={{ width: 550, height: 550, bottom: "10%", right: "5%", background: "radial-gradient(circle, #f472b6 0%, transparent 65%)", opacity: 0.07, animation: "auroraDrift5 22s ease-in-out infinite alternate", filter: "blur(75px)" }} />
-            <div className="absolute rounded-full" style={{ width: 400, height: 400, top: "55%", left: "5%", background: "radial-gradient(circle, #fb923c 0%, transparent 65%)", opacity: 0.06, animation: "auroraDrift6 30s ease-in-out infinite alternate", filter: "blur(60px)" }} />
+            <div className="absolute rounded-full" style={{ width: 900, height: 900, top: "-20%", left: "-15%", background: "radial-gradient(circle, #22d3a5 0%, transparent 65%)", opacity: 0.13, animation: "auroraDrift1 20s ease-in-out infinite alternate" }} />
+            <div className="absolute rounded-full" style={{ width: 700, height: 700, top: "20%", right: "-18%", background: "radial-gradient(circle, #818cf8 0%, transparent 65%)", opacity: 0.11, animation: "auroraDrift2 25s ease-in-out infinite alternate" }} />
+            <div className="absolute rounded-full" style={{ width: 600, height: 600, bottom: "-15%", left: "25%", background: "radial-gradient(circle, #4ade80 0%, transparent 65%)", opacity: 0.09, animation: "auroraDrift3 17s ease-in-out infinite alternate" }} />
+            <div className="absolute rounded-full" style={{ width: 500, height: 500, top: "5%", left: "40%", background: "radial-gradient(circle, #38bdf8 0%, transparent 65%)", opacity: 0.08, animation: "auroraDrift4 28s ease-in-out infinite alternate" }} />
+            <div className="absolute rounded-full" style={{ width: 550, height: 550, bottom: "10%", right: "5%", background: "radial-gradient(circle, #f472b6 0%, transparent 65%)", opacity: 0.07, animation: "auroraDrift5 22s ease-in-out infinite alternate" }} />
+            <div className="absolute rounded-full" style={{ width: 400, height: 400, top: "55%", left: "5%", background: "radial-gradient(circle, #fb923c 0%, transparent 65%)", opacity: 0.06, animation: "auroraDrift6 30s ease-in-out infinite alternate" }} />
         </div>
     );
 }

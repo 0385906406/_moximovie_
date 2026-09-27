@@ -3,10 +3,11 @@
 import { useEffect, useState , memo } from "react";
 import { movieService } from "@/services/movieService";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import { Navigation } from "swiper/modules";
 import Link from "next/link";
 import type { Movie } from "@/types/movie";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
 // ── Skeleton landscape card ──
 function SkeletonCard() {
@@ -106,8 +107,8 @@ function CinemaMoviesSection() {
                                         className="movie-card relative w-full rounded-xl overflow-hidden"
                                         style={{ aspectRatio: "16/7" }}
                                     >
-                                        <Image
-                                            src={(movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)}
+                                        <MovieImage
+                                            movie={movie} prefer="thumb"
                                             alt={movie.name}
                                             fill
                                             sizes="(max-width: 640px) 90vw, (max-width: 1280px) 60vw, 800px"
@@ -152,8 +153,8 @@ function CinemaMoviesSection() {
                                     {/* Mini poster — chỉ desktop, nhô lên trên thumbnail */}
                                     <Link href={`/phim/${movie.slug}`} className="hidden lg:block shrink-0">
                                         <div className="w-16 xl:w-20 rounded-xl overflow-hidden shadow-xl -mt-10 xl:-mt-12 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-105">
-                                            <Image
-                                                src={(movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`)}
+                                            <MovieImage
+                                                movie={movie} prefer="poster"
                                                 alt={movie.name}
                                                 width={80}
                                                 height={120}
@@ -203,28 +204,6 @@ function CinemaMoviesSection() {
                 </Swiper>
             )}
 
-            <style>{`
-                @media (max-width: 639px) {
-                    .cinema-swiper .swiper-button-next,
-                    .cinema-swiper .swiper-button-prev { display: none !important; }
-                }
-                .cinema-swiper .swiper-button-next,
-                .cinema-swiper .swiper-button-prev {
-                    width: 32px; height: 32px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    transition: all 0.25s ease; top: 33%;
-                }
-                .cinema-swiper .swiper-button-next:hover,
-                .cinema-swiper .swiper-button-prev:hover {
-                    background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4);
-                }
-                .cinema-swiper .swiper-button-next::after,
-                .cinema-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
-                .cinema-swiper .swiper-button-disabled { opacity: 0 !important; }
-                .cinema-swiper { overflow: hidden !important; }
-                .cinema-swiper .swiper-wrapper { overflow: visible; }
-            `}</style>
         </div>
     );
 }

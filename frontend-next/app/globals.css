@@ -993,15 +993,89 @@
 .vn-card:hover h3 { color: #f87171 !important; }
 .wb-card:hover h3 { color: #f472b6 !important; }
 
-/* ── Movie card hover — viền xanh như skill ── */
+/* ── Movie card hover — viền xanh như skill ──
+   - Viền vẽ bằng ::after và chỉ đổi opacity (GPU làm) thay vì animate box-shadow (repaint mỗi frame).
+     Box-shadow inset cũ còn bị ảnh che mất nên gần như không thấy.
+   - isolation giữ góc bo tròn khi ảnh zoom. KHÔNG dùng translateZ(0)/will-change ở đây:
+     mỗi card thành 1 layer GPU → trang chủ có 150+ layer, mỗi frame tốn ~10ms chỉ để sắp xếp layer. */
 .movie-card {
-  box-shadow: inset 0 0 0 0 transparent;
-  transition: box-shadow 0.3s ease;
+  isolation: isolate;
 }
-.group:hover .movie-card,
-.kr-card:hover .movie-card,
-.cn-card:hover .movie-card,
-.vn-card:hover .movie-card,
-.wb-card:hover .movie-card {
+.movie-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
   box-shadow: inset 0 0 0 2px rgba(34,211,165,0.85), inset 0 0 20px rgba(34,211,165,0.12);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.group:hover .movie-card::after,
+.kr-card:hover .movie-card::after,
+.cn-card:hover .movie-card::after,
+.vn-card:hover .movie-card::after,
+.wb-card:hover .movie-card::after {
+  opacity: 1;
+}
+/* backdrop-blur trên badge phải tính lại mỗi frame khi ảnh bên dưới zoom → nguyên nhân chính gây giật */
+.movie-card [class*="backdrop-blur"],
+.swiper-slide [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ── Tạm dừng animation vô hạn khi khối nằm ngoài màn hình (xem hooks/usePauseOffscreen.ts) ── */
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+
+/* ── MovieCard (trang danh sách) ── */
+.mc-frame { isolation: isolate; }
+.mc-zoom { transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .mc-zoom { transform: scale(1.07); }
+.mc-fade { opacity: 0; transition: opacity 0.25s ease; }
+.group:hover .mc-fade { opacity: 1; }
+.mc-play { transform: scale(0.7); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.group:hover .mc-play { transform: scale(1); }
+
+.mc-pop {
+  position: fixed;
+  z-index: 9999;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(165deg, #181d2a 0%, #0d1018 100%);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: 0 32px 90px rgba(0,0,0,0.95), 0 0 0 1px rgba(34,211,165,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+  will-change: transform, opacity;
+}
+.mc-pop-in  { animation: mcPopIn 0.34s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+.mc-pop-out { animation: mcPopOut 0.2s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+.mc-pop-in .mc-pop-info { animation: mcInfoIn 0.38s 0.08s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+
+/* --mc-from = tỉ lệ card/popup → popup "nở" ra từ đúng kích thước card */
+@keyframes mcPopIn {
+  from { opacity: 0; transform: scale(var(--mc-from, 0.9)); }
+  35%  { opacity: 1; }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes mcPopOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(var(--mc-from, 0.9)); }
+}
+@keyframes mcInfoIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mc-cta { transition: filter 0.2s ease, transform 0.15s ease; }
+.mc-cta:hover  { filter: brightness(1.1); }
+.mc-cta:active { transform: scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-zoom, .mc-play, .movie-card img { transition: none !important; transform: none !important; scale: none !important; }
+  .mc-pop-in, .mc-pop-out, .mc-pop-in .mc-pop-info { animation-duration: 1ms !important; }
 }

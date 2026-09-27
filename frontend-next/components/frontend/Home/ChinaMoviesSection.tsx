@@ -3,55 +3,13 @@
 import { movieService } from "@/services/movieService";
 import { useEffect, useRef, useState , memo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import type { Swiper as SwiperType } from "swiper";
 import type { Movie } from "@/types/movie";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
+import MovieImage from "@/components/frontend/MovieImage";
 
-const STYLES = `
-  .cn-section * { box-sizing: border-box; }
-
-  .cn-card { transition: transform 0.32s cubic-bezier(0.16,1,0.3,1); }
-  .cn-card:hover { transform: translateY(-6px); }
-  .cn-card:hover .cn-thumb { transform: scale(1.07); }
-  .cn-card:hover .cn-overlay { opacity: 1 !important; }
-  .cn-card:hover .cn-play { opacity: 1 !important; transform: scale(1) !important; }
-  .cn-card:hover .cn-info { opacity: 1 !important; transform: translateY(0) !important; }
-
-  .cn-thumb   { transition: transform 0.42s cubic-bezier(0.16,1,0.3,1); }
-  .cn-overlay { transition: opacity 0.3s ease; }
-  .cn-play    { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
-  .cn-info    { transition: all 0.35s 0.05s cubic-bezier(0.16,1,0.3,1); }
-  .cn-play:hover { background: rgba(251,191,36,1) !important; transform: scale(1.1) !important; }
-
-  @keyframes cnShimmer {
-    0%   { background-position: -600px 0 }
-    100% { background-position:  600px 0 }
-  }
-  .cn-skeleton {
-    background: linear-gradient(90deg, #1e2030 25%, #272a3d 50%, #1e2030 75%);
-    background-size: 600px 100%;
-    animation: cnShimmer 1.6s ease-in-out infinite;
-    border-radius: 12px;
-  }
-
-  @keyframes cnLine { from { width:0 } to { width:44px } }
-  .cn-title-line { animation: cnLine 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both; }
-
-  @keyframes cnFadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
-  .cn-slide-item { animation: cnFadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
-
-  .cn-nav-btn { transition: all 0.2s cubic-bezier(0.16,1,0.3,1); }
-  .cn-nav-btn:hover {
-    background: rgba(251,191,36,0.12) !important;
-    border-color: rgba(251,191,36,0.40) !important;
-    color: #fbbf24 !important;
-    transform: scale(1.08);
-  }
-  .cn-nav-btn:active { transform: scale(0.94); }
-  .cn-nav-btn:disabled { opacity: 0.2 !important; pointer-events: none; }
-`;
 
 const getBadgeStyle = (val?: string): React.CSSProperties => {
     const v = (val ?? "").toLowerCase();
@@ -80,16 +38,7 @@ function ChinaMoviesSection({ initialData }: CnProps) {
     const [isBeginning, setIsBeginning] = useState(true);
     const [isEnd, setIsEnd] = useState(false);
     const swiperRef = useRef<SwiperType | null>(null);
-    const styleInjected = useRef(false);
 
-    useEffect(() => {
-        if (!styleInjected.current) {
-            const tag = document.createElement("style");
-            tag.textContent = STYLES;
-            document.head.appendChild(tag);
-            styleInjected.current = true;
-        }
-    }, []);
 
     useEffect(() => {
         if (initialData?.length) return;
@@ -203,6 +152,8 @@ function ChinaMoviesSection({ initialData }: CnProps) {
                             setIsBeginning(swiper.isBeginning);
                             setIsEnd(swiper.isEnd);
                         }}
+                        /* Đổi kích thước cửa sổ → số phim vừa màn hình thay đổi, cập nhật lại nút trước/sau */
+                        onResize={swiper => { setIsBeginning(swiper.isBeginning); setIsEnd(swiper.isEnd); }}
                         onSlideChange={swiper => {
                             setIsBeginning(swiper.isBeginning);
                             setIsEnd(swiper.isEnd);
@@ -216,8 +167,8 @@ function ChinaMoviesSection({ initialData }: CnProps) {
                                 >
                                     <Link href={`/phim/${movie.slug}`} style={{ display: "block" }}>
                                         <div className="movie-card relative rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                                            <Image
-                                                src={(movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`)}
+                                            <MovieImage
+                                                movie={movie} prefer="thumb"
                                                 alt={movie.name ?? ""} loading="lazy"
                                                 fill
                                                 sizes="(max-width: 640px) 45vw, 220px"

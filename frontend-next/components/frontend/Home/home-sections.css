@@ -1,0 +1,480 @@
+/* CSS của các section trang chủ — trước đây mỗi section tự chèn <style> khi mount (lúc đang cuộn),
+   làm trình duyệt tính lại style toàn trang mỗi lần. Gom vào đây để tải 1 lần cùng trang. */
+
+/* ═══ BrainTeaserWithCriminalsMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .brainteaser-swiper .swiper-button-next,
+                    .brainteaser-swiper .swiper-button-prev { display: none !important; }
+                }
+                .brainteaser-swiper .swiper-button-next,
+                .brainteaser-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .brainteaser-swiper .swiper-button-next:hover,
+                .brainteaser-swiper .swiper-button-prev:hover {
+                    background: rgba(148,163,184,0.15); border-color: rgba(148,163,184,0.4);
+                }
+                .brainteaser-swiper .swiper-button-next::after,
+                .brainteaser-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .brainteaser-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .brainteaser-swiper { overflow: hidden !important; }
+                .brainteaser-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ ChinaMoviesSection.tsx ═══ */
+.cn-section * { box-sizing: border-box; }
+
+  .cn-card { transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
+  .cn-card:hover { transform: translateY(-6px); }
+  .cn-card:hover .cn-thumb { transform: scale(1.07); }
+  .cn-card:hover .cn-overlay { opacity: 1 !important; }
+  .cn-card:hover .cn-play { opacity: 1 !important; transform: scale(1) !important; }
+  .cn-card:hover .cn-info { opacity: 1 !important; transform: translateY(0) !important; }
+
+  .cn-thumb   { transition: transform 0.42s cubic-bezier(0.16,1,0.3,1); }
+  .cn-overlay { transition: opacity 0.3s ease; }
+  .cn-play    { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+  .cn-info    { transition: all 0.35s 0.05s cubic-bezier(0.16,1,0.3,1); }
+  .cn-play:hover { background: rgba(251,191,36,1) !important; transform: scale(1.1) !important; }
+
+  @keyframes cnShimmer {
+    0%   { background-position: -600px 0 }
+    100% { background-position:  600px 0 }
+  }
+  .cn-skeleton {
+    background: linear-gradient(90deg, #1e2030 25%, #272a3d 50%, #1e2030 75%);
+    background-size: 600px 100%;
+    animation: cnShimmer 1.6s ease-in-out infinite;
+    border-radius: 12px;
+  }
+
+  @keyframes cnLine { from { width:0 } to { width:44px } }
+  .cn-title-line { animation: cnLine 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+  @keyframes cnFadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
+  .cn-slide-item { animation: cnFadeUp 0.45s cubic-bezier(0.16,1,0.3,1) backwards; }
+  /* backwards: hết animation thì nhả transform, để :hover nhấc card lên được */
+  .cn-swiper { padding-top: 8px !important; margin-top: -8px; } /* chừa chỗ cho card nhấc lên, không bị cắt mép */
+
+  .cn-nav-btn { transition: all 0.2s cubic-bezier(0.16,1,0.3,1); }
+  .cn-nav-btn:hover {
+    background: rgba(251,191,36,0.12) !important;
+    border-color: rgba(251,191,36,0.40) !important;
+    color: #fbbf24 !important;
+    transform: scale(1.08);
+  }
+  .cn-nav-btn:active { transform: scale(0.94); }
+  .cn-nav-btn:disabled { opacity: 0.2 !important; pointer-events: none; }
+
+/* ═══ CinemaMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .cinema-swiper .swiper-button-next,
+                    .cinema-swiper .swiper-button-prev { display: none !important; }
+                }
+                .cinema-swiper .swiper-button-next,
+                .cinema-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 33%;
+                }
+                .cinema-swiper .swiper-button-next:hover,
+                .cinema-swiper .swiper-button-prev:hover {
+                    background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4);
+                }
+                .cinema-swiper .swiper-button-next::after,
+                .cinema-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .cinema-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .cinema-swiper { overflow: hidden !important; }
+                .cinema-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ CommingMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .comming-swiper .swiper-button-next,
+                    .comming-swiper .swiper-button-prev { display: none !important; }
+                }
+                .comming-swiper .swiper-button-next,
+                .comming-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .comming-swiper .swiper-button-next:hover,
+                .comming-swiper .swiper-button-prev:hover {
+                    background: rgba(250,204,21,0.15); border-color: rgba(250,204,21,0.4);
+                }
+                .comming-swiper .swiper-button-next::after,
+                .comming-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .comming-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .comming-swiper { overflow: hidden !important; }
+                .comming-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ GhostMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .ghost-swiper .swiper-button-next,
+                    .ghost-swiper .swiper-button-prev { display: none !important; }
+                }
+                .ghost-swiper .swiper-button-next,
+                .ghost-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .ghost-swiper .swiper-button-next:hover,
+                .ghost-swiper .swiper-button-prev:hover {
+                    background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4);
+                }
+                .ghost-swiper .swiper-button-next::after,
+                .ghost-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .ghost-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .ghost-swiper { overflow: hidden !important; }
+                .ghost-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ HongKongMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .hongkong-swiper .swiper-button-next,
+                    .hongkong-swiper .swiper-button-prev { display: none !important; }
+                }
+                .hongkong-swiper .swiper-button-next,
+                .hongkong-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .hongkong-swiper .swiper-button-next:hover,
+                .hongkong-swiper .swiper-button-prev:hover {
+                    background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.4);
+                }
+                .hongkong-swiper .swiper-button-next::after,
+                .hongkong-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .hongkong-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .hongkong-swiper { overflow: hidden !important; }
+                .hongkong-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ JapanMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .japan-swiper .swiper-button-next,
+                    .japan-swiper .swiper-button-prev { display: none !important; }
+                }
+                .japan-swiper .swiper-button-next,
+                .japan-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .japan-swiper .swiper-button-next:hover,
+                .japan-swiper .swiper-button-prev:hover {
+                    background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.4);
+                }
+                .japan-swiper .swiper-button-next::after,
+                .japan-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .japan-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .japan-swiper { overflow: hidden !important; }
+                .japan-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ KoreanMoviesSection.tsx ═══ */
+.kr-section * { box-sizing: border-box; }
+
+  .kr-card { transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
+  .kr-card:hover { transform: translateY(-6px); }
+  .kr-card:hover .kr-thumb { transform: scale(1.07); }
+  .kr-card:hover .kr-overlay { opacity: 1 !important; }
+  .kr-card:hover .kr-play { opacity: 1 !important; transform: scale(1) !important; }
+  .kr-card:hover .kr-info { opacity: 1 !important; transform: translateY(0) !important; }
+
+  .kr-thumb   { transition: transform 0.42s cubic-bezier(0.16,1,0.3,1); }
+  .kr-overlay { transition: opacity 0.3s ease; }
+  .kr-play    { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+  .kr-info    { transition: all 0.35s 0.05s cubic-bezier(0.16,1,0.3,1); }
+
+  .kr-play:hover { background: rgba(167,139,250,1) !important; transform: scale(1.1) !important; }
+
+  @keyframes krShimmer {
+    0%   { background-position: -600px 0 }
+    100% { background-position:  600px 0 }
+  }
+  .kr-skeleton {
+    background: linear-gradient(90deg, #1e2030 25%, #272a3d 50%, #1e2030 75%);
+    background-size: 600px 100%;
+    animation: krShimmer 1.6s ease-in-out infinite;
+    border-radius: 12px;
+  }
+
+  @keyframes krLine { from { width:0 } to { width:44px } }
+  .kr-title-line { animation: krLine 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+  .badge-hd         { background: linear-gradient(135deg,#3b82f6,#1d4ed8); }
+  .badge-fhd        { background: linear-gradient(135deg,#8b5cf6,#6d28d9); }
+  .badge-cam        { background: linear-gradient(135deg,#ef4444,#b91c1c); }
+  .badge-vietsub    { background: linear-gradient(135deg,#22c55e,#15803d); }
+  .badge-thuyetminh { background: linear-gradient(135deg,#f97316,#c2410c); }
+  .badge-default    { background: rgba(255,255,255,0.12); }
+
+  @keyframes krFadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
+  .kr-slide-item { animation: krFadeUp 0.45s cubic-bezier(0.16,1,0.3,1) backwards; }
+  /* backwards: hết animation thì nhả transform, để :hover nhấc card lên được */
+  .kr-swiper { padding-top: 8px !important; margin-top: -8px; } /* chừa chỗ cho card nhấc lên, không bị cắt mép */
+
+  /* custom nav button */
+  .kr-nav-btn {
+    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+  }
+  .kr-nav-btn:hover {
+    background: rgba(167,139,250,0.15) !important;
+    border-color: rgba(167,139,250,0.45) !important;
+    color: #a78bfa !important;
+    transform: scale(1.08);
+  }
+  .kr-nav-btn:active { transform: scale(0.94); }
+  .kr-nav-btn:disabled {
+    opacity: 0.2 !important;
+    pointer-events: none;
+  }
+
+/* ═══ LatestAnimeCollectionSection.tsx ═══ */
+.as-root * { box-sizing: border-box; }
+
+  .as-stage { height: 600px; }
+  @media (max-width: 1179px) { .as-stage { height: 520px; } }
+  @media (max-width: 767px)  { .as-stage { height: 440px; } }
+
+  @keyframes asSlideInL  { from{opacity:0;transform:translateX(60px) scale(0.98)} to{opacity:1;transform:none} }
+  @keyframes asSlideInR  { from{opacity:0;transform:translateX(-60px) scale(0.98)} to{opacity:1;transform:none} }
+  @keyframes asSlideOutL { from{opacity:1;transform:none} to{opacity:0;transform:translateX(-60px) scale(0.98)} }
+  @keyframes asSlideOutR { from{opacity:1;transform:none} to{opacity:0;transform:translateX(60px) scale(0.98)} }
+  .as-in-l  { animation: asSlideInL  0.65s cubic-bezier(0.16,1,0.3,1) forwards }
+  .as-in-r  { animation: asSlideInR  0.65s cubic-bezier(0.16,1,0.3,1) forwards }
+  .as-out-l { animation: asSlideOutL 0.65s cubic-bezier(0.16,1,0.3,1) forwards }
+  .as-out-r { animation: asSlideOutR 0.65s cubic-bezier(0.16,1,0.3,1) forwards }
+
+  @keyframes asUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+  .as-s1 { animation: asUp 0.5s 0.05s cubic-bezier(0.16,1,0.3,1) both }
+  .as-s2 { animation: asUp 0.5s 0.12s cubic-bezier(0.16,1,0.3,1) both }
+  .as-s3 { animation: asUp 0.5s 0.20s cubic-bezier(0.16,1,0.3,1) both }
+  .as-s4 { animation: asUp 0.5s 0.28s cubic-bezier(0.16,1,0.3,1) both }
+  .as-s5 { animation: asUp 0.5s 0.36s cubic-bezier(0.16,1,0.3,1) both }
+
+  @keyframes asKB { from{transform:scale(1) translate(0,0)} to{transform:scale(1.07) translate(-1%,-0.5%)} }
+  .as-kb { animation: asKB var(--dur,10s) linear forwards }
+
+  @keyframes asProgress { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+  .as-progress { transform-origin:left; animation: asProgress var(--dur,10s) linear forwards }
+
+  @keyframes asPing { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.55);opacity:0.35} }
+  .as-ping { animation: asPing 1.6s ease-in-out infinite }
+
+  .as-strip::-webkit-scrollbar { display:none }
+  .as-strip { -ms-overflow-style:none; scrollbar-width:none; gap:6px }
+  @media (max-width: 767px) { .as-strip { gap:4px } }
+
+  .as-thumb { transition: all 0.35s cubic-bezier(0.16,1,0.3,1) }
+  .as-thumb:not(.active):hover { opacity:0.75!important; transform:translateY(-3px) scale(1.05)!important }
+
+  .as-arrow-btn { transition: all 0.2s ease }
+  .as-arrow-btn:hover { background: rgba(34,211,165,0.15)!important; border-color: rgba(34,211,165,0.5)!important; color: #22d3a5!important }
+
+/* ═══ MoviesInTheatersSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .theaters-swiper .swiper-button-next,
+                    .theaters-swiper .swiper-button-prev { display: none !important; }
+                }
+                .theaters-swiper .swiper-button-next,
+                .theaters-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .theaters-swiper .swiper-button-next:hover,
+                .theaters-swiper .swiper-button-prev:hover {
+                    background: rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.4);
+                }
+                .theaters-swiper .swiper-button-next::after,
+                .theaters-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .theaters-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .theaters-swiper { overflow: hidden !important; }
+                .theaters-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ NewMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .new-movies-swiper .swiper-button-next,
+                    .new-movies-swiper .swiper-button-prev { display: none !important; }
+                }
+                .new-movies-swiper .swiper-button-next,
+                .new-movies-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .new-movies-swiper .swiper-button-next:hover,
+                .new-movies-swiper .swiper-button-prev:hover {
+                    background: rgba(74,222,128,0.15); border-color: rgba(74,222,128,0.4);
+                }
+                .new-movies-swiper .swiper-button-next::after,
+                .new-movies-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .new-movies-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .new-movies-swiper { overflow: hidden !important; }
+                .new-movies-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ ThailandMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .thailand-swiper .swiper-button-next,
+                    .thailand-swiper .swiper-button-prev { display: none !important; }
+                }
+                .thailand-swiper .swiper-button-next,
+                .thailand-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 38%;
+                }
+                .thailand-swiper .swiper-button-next:hover,
+                .thailand-swiper .swiper-button-prev:hover {
+                    background: rgba(45,212,191,0.15); border-color: rgba(45,212,191,0.4);
+                }
+                .thailand-swiper .swiper-button-next::after,
+                .thailand-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .thailand-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .thailand-swiper { overflow: hidden !important; }
+                .thailand-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ TopMoviesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .top-movies-swiper .swiper-button-next,
+                    .top-movies-swiper .swiper-button-prev { display: none !important; }
+                }
+                .top-movies-swiper .swiper-button-next,
+                .top-movies-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 35%;
+                }
+                .top-movies-swiper .swiper-button-next:hover,
+                .top-movies-swiper .swiper-button-prev:hover {
+                    background: rgba(74,222,128,0.15); border-color: rgba(74,222,128,0.4);
+                }
+                .top-movies-swiper .swiper-button-next::after,
+                .top-movies-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .top-movies-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .top-movies-swiper { overflow: hidden !important; }
+                .top-movies-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ TopTVSeriesSection.tsx ═══ */
+@media (max-width: 639px) {
+                    .top-tvseries-swiper .swiper-button-next,
+                    .top-tvseries-swiper .swiper-button-prev { display: none !important; }
+                }
+                .top-tvseries-swiper .swiper-button-next,
+                .top-tvseries-swiper .swiper-button-prev {
+                    width: 32px; height: 32px; border-radius: 50%;
+                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    transition: all 0.25s ease; top: 35%;
+                }
+                .top-tvseries-swiper .swiper-button-next:hover,
+                .top-tvseries-swiper .swiper-button-prev:hover {
+                    background: rgba(250,204,21,0.15); border-color: rgba(250,204,21,0.4);
+                }
+                .top-tvseries-swiper .swiper-button-next::after,
+                .top-tvseries-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
+                .top-tvseries-swiper .swiper-button-disabled { opacity: 0 !important; }
+                .top-tvseries-swiper { overflow: hidden !important; }
+                .top-tvseries-swiper .swiper-wrapper { overflow: visible; }
+
+/* ═══ VietNamMoviesSection.tsx ═══ */
+.vn-section * { box-sizing: border-box; }
+
+  .vn-card { transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
+  .vn-card:hover { transform: translateY(-6px); }
+  .vn-card:hover .vn-thumb { transform: scale(1.07); }
+  .vn-card:hover .vn-overlay { opacity: 1 !important; }
+  .vn-card:hover .vn-play { opacity: 1 !important; transform: scale(1) !important; }
+  .vn-card:hover .vn-info { opacity: 1 !important; transform: translateY(0) !important; }
+
+  .vn-thumb   { transition: transform 0.42s cubic-bezier(0.16,1,0.3,1); }
+  .vn-overlay { transition: opacity 0.3s ease; }
+  .vn-play    { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+  .vn-info    { transition: all 0.35s 0.05s cubic-bezier(0.16,1,0.3,1); }
+  .vn-play:hover { background: rgba(248,113,113,1) !important; transform: scale(1.1) !important; }
+
+  @keyframes vnShimmer {
+    0%   { background-position: -600px 0 }
+    100% { background-position:  600px 0 }
+  }
+  .vn-skeleton {
+    background: linear-gradient(90deg, #1e2030 25%, #272a3d 50%, #1e2030 75%);
+    background-size: 600px 100%;
+    animation: vnShimmer 1.6s ease-in-out infinite;
+    border-radius: 12px;
+  }
+
+  @keyframes vnLine { from { width:0 } to { width:44px } }
+  .vn-title-line { animation: vnLine 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+  @keyframes vnFadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
+  .vn-slide-item { animation: vnFadeUp 0.45s cubic-bezier(0.16,1,0.3,1) backwards; }
+  /* backwards: hết animation thì nhả transform, để :hover nhấc card lên được */
+  .vn-swiper { padding-top: 8px !important; margin-top: -8px; } /* chừa chỗ cho card nhấc lên, không bị cắt mép */
+
+  .vn-nav-btn { transition: all 0.2s cubic-bezier(0.16,1,0.3,1); }
+  .vn-nav-btn:hover {
+    background: rgba(248,113,113,0.12) !important;
+    border-color: rgba(248,113,113,0.40) !important;
+    color: #f87171 !important;
+    transform: scale(1.08);
+  }
+  .vn-nav-btn:active { transform: scale(0.94); }
+  .vn-nav-btn:disabled { opacity: 0.2 !important; pointer-events: none; }
+
+/* ═══ WibuMoviesSection.tsx ═══ */
+.wb-section * { box-sizing: border-box; }
+
+  .wb-card { transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
+  .wb-card:hover { transform: translateY(-6px); }
+  .wb-card:hover .wb-thumb { transform: scale(1.07); }
+  .wb-card:hover .wb-overlay { opacity: 1 !important; }
+  .wb-card:hover .wb-play { opacity: 1 !important; transform: scale(1) !important; }
+  .wb-card:hover .wb-info { opacity: 1 !important; transform: translateY(0) !important; }
+
+  .wb-thumb   { transition: transform 0.42s cubic-bezier(0.16,1,0.3,1); }
+  .wb-overlay { transition: opacity 0.3s ease; }
+  .wb-play    { transition: all 0.3s cubic-bezier(0.16,1,0.3,1); }
+  .wb-info    { transition: all 0.35s 0.05s cubic-bezier(0.16,1,0.3,1); }
+  .wb-play:hover { background: rgba(244,114,182,1) !important; transform: scale(1.1) !important; }
+
+  @keyframes wbShimmer {
+    0%   { background-position: -600px 0 }
+    100% { background-position:  600px 0 }
+  }
+  .wb-skeleton {
+    background: linear-gradient(90deg, #1e2030 25%, #272a3d 50%, #1e2030 75%);
+    background-size: 600px 100%;
+    animation: wbShimmer 1.6s ease-in-out infinite;
+    border-radius: 12px;
+  }
+
+  @keyframes wbLine { from { width:0 } to { width:44px } }
+  .wb-title-line { animation: wbLine 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+  @keyframes wbFadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
+  .wb-slide-item { animation: wbFadeUp 0.45s cubic-bezier(0.16,1,0.3,1) backwards; }
+  /* backwards: hết animation thì nhả transform, để :hover nhấc card lên được */
+  .wb-swiper { padding-top: 8px !important; margin-top: -8px; } /* chừa chỗ cho card nhấc lên, không bị cắt mép */
+
+  .wb-nav-btn { transition: all 0.2s cubic-bezier(0.16,1,0.3,1); }
+  .wb-nav-btn:hover {
+    background: rgba(244,114,182,0.12) !important;
+    border-color: rgba(244,114,182,0.40) !important;
+    color: #f472b6 !important;
+    transform: scale(1.08);
+  }
+  .wb-nav-btn:active { transform: scale(0.94); }
+  .wb-nav-btn:disabled { opacity: 0.2 !important; pointer-events: none; }

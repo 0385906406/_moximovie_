@@ -3,6 +3,7 @@
 import { useEffect, useState , memo } from "react";
 import { movieService } from "@/services/movieService";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "@/lib/swiperStaticSlides";
 import { Navigation } from "swiper/modules";
 import Link from "next/link";
 import Image from "next/image";
@@ -182,28 +183,6 @@ function CommingMoviesSection() {
                 </Swiper>
             )}
 
-            <style>{`
-                @media (max-width: 639px) {
-                    .comming-swiper .swiper-button-next,
-                    .comming-swiper .swiper-button-prev { display: none !important; }
-                }
-                .comming-swiper .swiper-button-next,
-                .comming-swiper .swiper-button-prev {
-                    width: 32px; height: 32px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    transition: all 0.25s ease; top: 38%;
-                }
-                .comming-swiper .swiper-button-next:hover,
-                .comming-swiper .swiper-button-prev:hover {
-                    background: rgba(250,204,21,0.15); border-color: rgba(250,204,21,0.4);
-                }
-                .comming-swiper .swiper-button-next::after,
-                .comming-swiper .swiper-button-prev::after { font-size: 11px; font-weight: 900; color: white; }
-                .comming-swiper .swiper-button-disabled { opacity: 0 !important; }
-                .comming-swiper { overflow: hidden !important; }
-                .comming-swiper .swiper-wrapper { overflow: visible; }
-            `}</style>
         </div>
     );
 }

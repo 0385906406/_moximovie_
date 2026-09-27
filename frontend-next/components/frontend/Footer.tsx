@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePauseOffscreen } from "@/hooks/usePauseOffscreen";
 
 const theme = process.env.NEXT_PUBLIC_ASSET_THEME || "Default";
 
@@ -77,15 +78,22 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
 }
 
 // ── Particle dots background ──
+/* Giả ngẫu nhiên theo index: server và client ra cùng giá trị → không lỗi hydration như Math.random() */
+const seeded = (i: number, n: number) => {
+    const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
+    return Math.round((x - Math.floor(x)) * 1000) / 1000;
+};
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    left: `${seeded(i, 1) * 100}%`,
+    top: `${seeded(i, 2) * 100}%`,
+    size: seeded(i, 3) * 2 + 1,
+    delay: seeded(i, 4) * 4,
+    duration: seeded(i, 5) * 3 + 3,
+}));
+
 function ParticleDots() {
-    const particles = Array.from({ length: 18 }, (_, i) => ({
-        id: i,
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        size: Math.random() * 2 + 1,
-        delay: Math.random() * 4,
-        duration: Math.random() * 3 + 3,
-    }));
+    const particles = PARTICLES;
     return (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
             {particles.map((p) => (
@@ -176,6 +184,7 @@ const STATS = [
 const TYPING_TEXTS = ["Phim Lẻ HD", "Phim Bộ Mới", "Hoạt Hình 4K", "Vietsub Chuẩn"];
 
 const Footer = () => {
+    const pauseRef = usePauseOffscreen<HTMLElement>();
     const logoPath = `/${theme}/logo.png`;
     const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
     const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
@@ -243,7 +252,7 @@ const Footer = () => {
                 .footer-link-hover:hover::after { width: 100%; }
             `}</style>
 
-            <footer className="relative mt-16 overflow-hidden bg-[#05070b] border-t border-white/5 text-white z-30">
+            <footer ref={pauseRef} className="relative mt-16 overflow-hidden bg-[#05070b] border-t border-white/5 text-white z-30">
 
                 {/* ── Particle background ── */}
                 <ParticleDots />

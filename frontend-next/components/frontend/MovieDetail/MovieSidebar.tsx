@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import type { Movie } from "@/types/movie";
+import MovieImage from "@/components/frontend/MovieImage";
 
 interface MovieSidebarProps {
     movie: Movie;
@@ -22,9 +23,6 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
-    const posterSrc = movie.poster_url
-        ? (movie.poster_url.startsWith("http") ? movie.poster_url : (movie.poster_url?.startsWith('http') ? movie.poster_url : `https://phimimg.com/${movie.poster_url}`))
-        : null;
 
     const isOngoing   = movie.type === "series" && movie.status === "ongoing";
     const isCompleted = movie.type === "series" && movie.status === "completed";
@@ -34,7 +32,6 @@ const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
             className="h-full flex flex-col rounded-tl-[1.25rem] rounded-tr-[3rem] rounded-br-[1.25rem] rounded-bl-[1.25rem] overflow-hidden"
             style={{
                 background: "rgba(14,17,28,0.95)",
-                backdropFilter: "blur(2px)",
                 border: "1px solid rgba(255,255,255,0.07)",
             }}
         >
@@ -66,13 +63,12 @@ const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
                         boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08)",
                     }}
                 >
-                    {posterSrc ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                            src={posterSrc}
+                    {movie.poster_url || movie.thumb_url ? (
+                        <MovieImage
+                            movie={movie} prefer="poster"
                             alt={movie.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
+                            fill sizes="200px"
+                            className="object-cover"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center" style={{ background: "#1a1d2e" }}>
