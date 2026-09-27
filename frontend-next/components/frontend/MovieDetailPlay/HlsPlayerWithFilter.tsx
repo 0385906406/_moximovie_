@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import type { Segment } from "@/types/segment";
 import type { HlsPlayerProps } from "@/types/hlsPlayerProps";
+import PlayerControls, { AUTOPLAY_FLAG } from "./PlayerControls";
+
+const AMBIENT_KEY = "player-ambient";
 
 interface VariantLevel {
     index: number;
@@ -16,16 +19,73 @@ interface VariantLevel {
 /* ══════════════════════════════════════════════
    COMPONENT
 ══════════════════════════════════════════════ */
-const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster }) => {
+const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, subtitle, prevEpisode, nextEpisode }) => {
     const videoRef   = useRef<HTMLVideoElement | null>(null);
     const hlsRef     = useRef<Hls | null>(null);
     const blobUrlRef = useRef<string | null>(null);
-    const qualityRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const ambientRef = useRef<HTMLCanvasElement | null>(null);
+    /* Đổi chất lượng cũng khôi phục vị trí xem → không hiện thông báo "tiếp tục từ" trong trường hợp đó */
+    const switchingQuality = useRef(false);
+    /* Vừa bấm chuyển tập từ trình phát → tập mới tự phát luôn */
+    const autoStart = useRef(false);
 
     const [loading,          setLoading]          = useState(false);
     const [error,            setError]            = useState<string | null>(null);
     const [overlayHidden,    setOverlayHidden]    = useState(false);
-    const [showQuality,      setShowQuality]      = useState(false);
+    const [resumeFrom,       setResumeFrom]       = useState<number | null>(null);
+    const dismissResume = useCallback(() => setResumeFrom(null), []);
+
+    /* Ambient: ánh màu của video toả ra quanh khung phát (chỉ máy tính, tốn GPU) */
+    const [ambientOk, setAmbientOk] = useState(false);
+    const [ambient,   setAmbient]   = useState(true);
+
+    useEffect(() => {
+        try {
+            if (sessionStorage.getItem(AUTOPLAY_FLAG)) {
+                sessionStorage.removeItem(AUTOPLAY_FLAG);
+                autoStart.current = true;
+            }
+        } catch {}
+        setAmbientOk(window.matchMedia("(min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference)").matches);
+        try {
+            const saved = localStorage.getItem(AMBIENT_KEY);
+            if (saved !== null) setAmbient(saved === "1");
+        } catch {}
+    }, []);
+
+    const changeAmbient = useCallback((on: boolean) => {
+        setAmbient(on);
+        try { localStorage.setItem(AMBIENT_KEY, on ? "1" : "0"); } catch {}
+    }, []);
+
+    /* Vẽ khung hình thu nhỏ (64×36) lên canvas phía sau, ~8 lần/giây; CSS phóng to + làm mờ */
+    useEffect(() => {
+        if (!ambientOk || !ambient || !overlayHidden) return;
+        const video = videoRef.current;
+        const canvas = ambientRef.current;
+        const ctx = canvas?.getContext("2d");
+        if (!video || !canvas || !ctx) return;
+        const paint = () => {
+            if (video.readyState < 2) return;
+            try { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); } catch {}
+        };
+        let raf = 0, last = 0;
+        const loop = (now: number) => {
+            raf = requestAnimationFrame(loop);
+            if (video.paused || now - last < 120) return;
+            last = now;
+            paint();
+        };
+        raf = requestAnimationFrame(loop);
+        video.addEventListener("seeked", paint);
+        video.addEventListener("loadeddata", paint);
+        return () => {
+            cancelAnimationFrame(raf);
+            video.removeEventListener("seeked", paint);
+            video.removeEventListener("loadeddata", paint);
+        };
+    }, [ambientOk, ambient, overlayHidden]);
 
     /* Quality state */
     const [variantLevels,   setVariantLevels]   = useState<VariantLevel[]>([]);
@@ -43,7 +103,7 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster }) => {
         setLoading(true);
         setError(null);
         setOverlayHidden(false);
-        setShowQuality(false);
+        setResumeFrom(null);
         setVariantLevels([]);
         setSelectedVariant(0);
         setVariantUrl("");
@@ -151,11 +211,18 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster }) => {
         const PROG_KEY = `hls-progress-${src}`;
 
         const restoreTime = () => {
+            if (autoStart.current) {
+                autoStart.current = false;
+                setOverlayHidden(true);
+                video.play().catch(() => setOverlayHidden(false));
+            }
             const saved = localStorage.getItem(PROG_KEY);
             if (!saved || !video) return;
             const t = parseFloat(saved);
             if (video.duration && t > video.duration - 10) return;
             video.currentTime = t;
+            if (!switchingQuality.current && t > 5) setResumeFrom(t);
+            switchingQuality.current = false;
         };
 
         if (Hls.isSupported()) {
@@ -189,104 +256,66 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster }) => {
     /* ── Quality change ── */
     const handleQualityChange = useCallback((idx: number) => {
         /* Save current time so it restores after re-load */
-        if (videoRef.current && videoRef.current.currentTime > 0) {
-            localStorage.setItem(`hls-progress-${src}`, Math.floor(videoRef.current.currentTime).toString());
+        if (idx === selectedVariant) return;
+        const video = videoRef.current;
+        if (video && video.currentTime > 0) {
+            localStorage.setItem(`hls-progress-${src}`, Math.floor(video.currentTime).toString());
+        }
+        switchingQuality.current = true;
+        /* Đang xem thì đổi xong phát tiếp luôn */
+        if (video && !video.paused) {
+            const resume = () => video.play().catch(() => {});
+            video.addEventListener("loadedmetadata", resume, { once: true });
         }
         setSelectedVariant(idx);
         setVariantUrl(variantLevels[idx].url);
-        setShowQuality(false);
-    }, [src, variantLevels]);
-
-    /* ── Close quality dropdown on outside click ── */
-    useEffect(() => {
-        if (!showQuality) return;
-        const handler = (e: MouseEvent) => {
-            if (qualityRef.current && !qualityRef.current.contains(e.target as Node))
-                setShowQuality(false);
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [showQuality]);
-
-    const qualityLabel = variantLevels.length > 1 && variantLevels[selectedVariant]
-        ? variantLevels[selectedVariant].label
-        : "AUTO";
+    }, [src, variantLevels, selectedVariant]);
 
     /* ── RENDER ── */
     return (
-        <div className="relative w-full h-full bg-black overflow-hidden">
+        <div className="relative w-full h-full isolate" style={{ borderRadius: "inherit" }}>
+            {ambientOk && (
+                <canvas
+                    ref={ambientRef}
+                    width={64}
+                    height={36}
+                    aria-hidden
+                    className="absolute pointer-events-none"
+                    style={{
+                        left: "-4%", top: "-7%", width: "108%", height: "114%", zIndex: -1,
+                        filter: "blur(44px) saturate(1.5)",
+                        opacity: ambient && overlayHidden ? 0.6 : 0,
+                        transition: "opacity 1.2s ease",
+                    }}
+                />
+            )}
+        <div ref={containerRef} className="pc-root relative w-full h-full bg-black overflow-hidden" style={{ borderRadius: "inherit" }}>
+            {/* Không dùng controls mặc định của trình duyệt: PlayerControls vẽ thanh điều khiển riêng.
+                playsInline: iPhone không tự bật toàn màn hình khi bấm phát */}
             <video
                 ref={videoRef}
-                controls
+                playsInline
                 poster={poster}
                 className="w-full h-full object-contain bg-black"
             />
 
-            {/* ── Quality selector — only shows when playing + multiple qualities available ── */}
-            {overlayHidden && variantLevels.length > 1 && (
-                <div ref={qualityRef} className="absolute top-3 right-3 z-40">
-                    <button
-                        onClick={() => setShowQuality(p => !p)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-150"
-                        style={{
-                            background: showQuality ? "rgba(34,211,165,0.92)" : "rgba(0,0,0,0.72)",
-                            backdropFilter: "blur(10px)",
-                            border: showQuality ? "1px solid rgba(34,211,165,0.4)" : "1px solid rgba(255,255,255,0.18)",
-                            color: showQuality ? "#041a11" : "#fff",
-                            boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
-                        }}
-                    >
-                        {/* Gear icon */}
-                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path strokeLinecap="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-                        </svg>
-                        <span>{qualityLabel}</span>
-                        <svg className={`w-3 h-3 shrink-0 transition-transform duration-150 ${showQuality ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-
-                    {/* Dropdown */}
-                    {showQuality && (
-                        <div
-                            className="absolute top-full right-0 mt-1.5 rounded-xl overflow-hidden py-1 min-w-[140px]"
-                            style={{
-                                background: "rgba(10,12,20,0.97)",
-                                backdropFilter: "blur(16px)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
-                                animation: "qDrop 0.15s ease",
-                            }}
-                        >
-                            <p className="px-3.5 pt-2 pb-1 text-[10px] font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>
-                                Chất lượng
-                            </p>
-                            {variantLevels.map(v => {
-                                const isActive = v.index === selectedVariant;
-                                return (
-                                    <button
-                                        key={v.index}
-                                        onClick={() => handleQualityChange(v.index)}
-                                        className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-[12.5px] transition-colors duration-100 hover:bg-white/5"
-                                        style={{
-                                            color: isActive ? "#22d3a5" : "rgba(255,255,255,0.72)",
-                                            background: isActive ? "rgba(34,211,165,0.08)" : "transparent",
-                                            fontWeight: isActive ? 700 : 400,
-                                        }}
-                                    >
-                                        <span>{v.label}</span>
-                                        {isActive && (
-                                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#22d3a5" strokeWidth="2.5">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+            {overlayHidden && (
+                <PlayerControls
+                    videoRef={videoRef}
+                    containerRef={containerRef}
+                    qualities={variantLevels.map(v => ({ index: v.index, label: v.label }))}
+                    selectedQuality={selectedVariant}
+                    onQualityChange={handleQualityChange}
+                    resumeFrom={resumeFrom}
+                    onDismissResume={dismissResume}
+                    title={title}
+                    subtitle={subtitle}
+                    prevEpisode={prevEpisode}
+                    nextEpisode={nextEpisode}
+                    ambientAvailable={ambientOk}
+                    ambient={ambient}
+                    onAmbientChange={changeAmbient}
+                />
             )}
 
             {/* ── Play overlay ── */}
@@ -332,12 +361,24 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster }) => {
                             {loading ? "Đang tải…" : "Nhấn để xem phim"}
                         </span>
                     </button>
+
+                    {/* Tên phim + tập ở góc dưới màn hình chờ */}
+                    {title && (
+                        <div className="pc-start-title absolute left-4 right-4 sm:left-6 bottom-4 sm:bottom-6 z-10 pointer-events-none">
+                            {subtitle && (
+                                <span className="inline-block mb-1.5 px-2 py-0.5 rounded-md bg-[#22d3a5]/15 border border-[#22d3a5]/30 text-[#22d3a5] text-[10.5px] font-bold tracking-wide">
+                                    {subtitle}
+                                </span>
+                            )}
+                            <p className="text-white font-extrabold text-[15px] sm:text-xl truncate drop-shadow-lg" dangerouslySetInnerHTML={{ __html: title }} />
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* ── Error ── */}
             {error && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-medium"
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-medium"
                     style={{
                         background: "rgba(239,68,68,0.9)",
                         backdropFilter: "blur(8px)",
@@ -355,14 +396,14 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster }) => {
 
             <style>{`
                 @keyframes fdSlide {
-                    from { opacity:0; transform:translate(-50%,-8px); }
-                    to   { opacity:1; transform:translate(-50%,0); }
+                    from { opacity:0; transform:translateY(-8px); }
+                    to   { opacity:1; transform:none; }
                 }
-                @keyframes qDrop {
-                    from { opacity:0; transform:translateY(-6px) scale(0.97); }
-                    to   { opacity:1; transform:translateY(0) scale(1); }
-                }
+                .pc-root:fullscreen { border-radius: 0 !important; }
+                .pc-start-title { animation: pcStartIn .6s cubic-bezier(.16,1,.3,1) .1s both; }
+                @keyframes pcStartIn { from { opacity: 0; transform: translateY(12px); } }
             `}</style>
+        </div>
         </div>
     );
 };

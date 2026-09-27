@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useLocalWatched } from "@/hooks/useLocalWatched";
 
@@ -54,6 +54,7 @@ function XemPhimClient() {
     const { slug: _slug }  = useParams();
     const slug             = _slug as string;
     const searchParams     = useSearchParams();
+    const router           = useRouter();
     const { markWatched, isWatched } = useLocalWatched(slug);
 
     const verIndex = Math.max(Number(searchParams.get("ver") ?? 1) - 1, 0);
@@ -134,6 +135,19 @@ function XemPhimClient() {
         </div>
     );
 
+    /* Tập trước/sau cho trình phát (nút ⏮ ⏭, tự chuyển tập khi hết) */
+    const episodeLink = (idx: number) => {
+        const ep = currentServerData[idx];
+        if (!ep) return null;
+        const href = `/xem-phim/${movie.slug}?ver=${verIndex + 1}&ep=${idx + 1}`;
+        return { label: ep.name ? `Tập ${ep.name.replace(/^tập\s*/i, "")}` : `Tập ${idx + 1}`, onGo: () => router.push(href) };
+    };
+    const prevEpisode = isSeries ? episodeLink(epIndex - 1) : undefined;
+    const nextEpisode = isSeries ? episodeLink(epIndex + 1) : undefined;
+    const playerSubtitle = isSeries
+        ? (currentEpisode.name ? `Tập ${currentEpisode.name.replace(/^tập\s*/i, "")}` : `Tập ${epIndex + 1}`)
+        : (servers[verIndex]?.server_name ?? undefined);
+
     return (
         <>
             <SEO
@@ -189,7 +203,8 @@ function XemPhimClient() {
                         {/* Player */}
                         <div ref={playerRef} className={isSeries ? "xl:flex-1 min-w-0" : ""}>
                             <div
-                                className="relative w-full rounded-2xl overflow-hidden"
+                                /* Không overflow-hidden: để ánh Ambient toả ra ngoài; trình phát tự bo góc bên trong */
+                                className="relative w-full rounded-2xl"
                                 style={{
                                     aspectRatio: "16/9",
                                     boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 24px 80px rgba(0,0,0,0.8), 0 0 60px rgba(34,211,165,0.06)",
@@ -199,6 +214,10 @@ function XemPhimClient() {
                                     <HlsPlayerWithFilter
                                         src={currentEpisode.link_m3u8}
                                         poster={movieImageSources(movie, "thumb")[0]}
+                                        title={movie.name}
+                                        subtitle={playerSubtitle}
+                                        prevEpisode={prevEpisode}
+                                        nextEpisode={nextEpisode}
                                     />
                                 )}
                             </div>
