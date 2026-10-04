@@ -33,6 +33,7 @@ import MovieHero from "@/components/frontend/MovieDetail/MovieHero";
 import { useLocalWatched } from "@/hooks/useLocalWatched";
 import MovieImage from "@/components/frontend/MovieImage";
 import MovieTmdbExtras from "@/components/frontend/MovieDetail/MovieTmdbExtras";
+import TrailerModal from "@/components/frontend/MovieDetail/TrailerModal";
 import type { TmdbExtras } from "@/lib/tmdb";
 
 // ── helper ──
@@ -368,6 +369,13 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
     const createPlaylistPopupRef = useRef<HTMLDivElement | null>(null);
 
     const { slug: _slug } = useParams(); const slug = _slug as string;
+
+    /* Trailer tự mở dạng modal khi vào trang, nếu phim có trailer */
+    const trailerForSlug = initialData?.slug === slug ? initialData?.tmdb?.trailer ?? null : null;
+    const trailerKey = trailerForSlug?.key ?? null;
+    const [trailerOpen, setTrailerOpen] = useState(false);
+    useEffect(() => { setTrailerOpen(Boolean(trailerKey)); }, [trailerKey]);
+    const closeTrailer = useCallback(() => setTrailerOpen(false), []);
     const user = useAuthStore((s) => s.user);
     const { markWatched: markWatchedLocal, isWatched: isWatchedLocal } = useLocalWatched(slug);
     const userId = user?._id ?? "";
@@ -732,6 +740,10 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                     />
                 </div>
 
+                {trailerOpen && trailerForSlug && (
+                    <TrailerModal trailer={trailerForSlug} onClose={closeTrailer} />
+                )}
+
                 {/* ── Layout dưới hero ── */}
                 <div
                     className="relative z-30 max-w-[1640px] mx-auto px-3 -mt-2.5 sm:-mt-[220px] lg:-mt-[220px] xl:-mt-[195px]"
@@ -821,6 +833,7 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                             >
                                 <MovieActionsRow
                                     firstEpisode={currentEpisodes[0]}
+                                    rating={initialData?.slug === slug ? initialData?.tmdb : null}
                                     onPlayFirstEpisode={() =>
                                         currentEpisodes[0] && handlePlay(currentEpisodes[0], 0, currentServerIndex)
                                     }
@@ -867,6 +880,8 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                                         onChangeTab={setTab}
                                         movie={movie}
                                         servers={server}
+                                        cast={initialData?.slug === slug ? initialData?.tmdb?.cast : undefined}
+                                        similar={initialData?.slug === slug ? initialData?.tmdb?.similar : undefined}
                                         currentEpisode={currentEpisode}
                                         onPlayEpisode={handlePlay}
                                         isEpisodeWatched={isEpisodeWatched}
@@ -874,7 +889,7 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                                 </div>
                             )}
 
-                            {/* ── Điểm, trailer, diễn viên, phim tương tự (TMDB) ── */}
+                            {/* ── Điểm, trailer, phim tương tự (TMDB). Diễn viên nằm trong tab "Diễn viên" ── */}
                             {movie && initialData?.tmdb && initialData.slug === slug && (
                                 <div style={{ position: "relative", zIndex: 10 }}>
                                     <MovieTmdbExtras data={initialData.tmdb} />

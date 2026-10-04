@@ -1,5 +1,6 @@
 import React from "react";
 import type { Server } from "@/types/server";
+import { serverTone } from "@/lib/serverTone";
 
 interface ServerSwitcherProps {
     servers: Server[];
@@ -36,7 +37,7 @@ const ServerSwitcher: React.FC<ServerSwitcherProps> = ({
                                 </path>
                             </svg>
                         </div>
-                        {(s.server_name == "#Hà Nội (Vietsub)") ? "Phụ đề" : ((s.server_name == "#Hà Nội (Lồng Tiếng)") ? "Lồng tiếng" : (s.server_name == "#Hà Nội (Thuyết Minh)") ? "Thuyết minh" : "Khác")}
+                        {serverTone(s.server_name).label}
                     </button>
                 );
             })}

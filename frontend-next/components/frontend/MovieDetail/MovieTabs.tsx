@@ -1,18 +1,22 @@
 ﻿"use client";
 
 import React, { useEffect, useState } from "react";
+import { movieService } from "@/services/movieService";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Play, Star } from "lucide-react";
 import type { Episode } from "@/types/episode";
 import type { Movie } from "@/types/movie";
 import ServerSwitcher from "./ServerSwitcher";
 import type { Server } from "@/types/server";
-import MovieCard from "../MovieCard";
-import { movieService } from "@/services/movieService";
-import { ThreeDot } from "react-loading-indicators";
 import MovieImage from "@/components/frontend/MovieImage";
+import { serverTone } from "@/lib/serverTone";
+import Image from "next/image";
+import type { TmdbCast, TmdbSimilar } from "@/lib/tmdb";
 
 type TabKey = "tap-phim" | "the-loai" | "dao-dien" | "dien-vien";
+
+const TMDB_IMG = "https://image.tmdb.org/t/p";
 
 interface MovieTabsProps {
     tab: TabKey;
@@ -20,6 +24,10 @@ interface MovieTabsProps {
 
     movie: Movie;
     servers: Server[];
+    /* Diễn viên có ảnh (từ phimapi/TMDB). Không có → tab hiện danh sách tên từ movie.actor */
+    cast?: TmdbCast[];
+    /* Phim tương tự từ TMDB. Bấm vào → mở đúng trang phim trên web */
+    similar?: TmdbSimilar[];
 
     onPlayEpisode: (
         ep: Episode,
@@ -41,10 +49,46 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
     onChangeTab,
     movie,
     servers,
+    cast,
+    similar,
     isEpisodeWatched,
     onPlayEpisode,
     currentEpisode,
 }) => {
+    const router = useRouter();
+    const [resolvingId, setResolvingId] = useState<number | null>(null);
+
+    /* Hình ảnh của bộ phim (tối đa 5 ảnh ngang). Không có thì không hiện mục này */
+    const [stills, setStills] = useState<string[]>([]);
+    useEffect(() => {
+        let alive = true;
+        movieService.dataImages(movie.slug)
+            .then((d: { images?: { type: string; file_path: string }[]; image_sizes?: { backdrop?: { w780?: string } } } | null) => {
+                const base = d?.image_sizes?.backdrop?.w780;
+                const urls = (d?.images ?? [])
+                    .filter(img => img.type === "backdrop" && img.file_path)
+                    .slice(0, 5)
+                    .map(img => `${base ?? "https://image.tmdb.org/t/p/w780"}${img.file_path}`);
+                if (alive) setStills(urls);
+            })
+            .catch(() => { if (alive) setStills([]); });
+        return () => { alive = false; };
+    }, [movie.slug]);
+
+    /* Phim tương tự chỉ có TMDB ID → hỏi phimapi lấy slug rồi mở trang phim.
+       Không tìm thấy trên phimapi thì chuyển sang tìm kiếm theo tên. */
+    const openSimilar = async (m: TmdbSimilar) => {
+        setResolvingId(m.id);
+        try {
+            const res = await fetch(`https://phimapi.com/tmdb/${m.type}/${m.id}`);
+            const slug: string | undefined = res.ok ? (await res.json())?.movie?.slug : undefined;
+            router.push(slug ? `/phim/${slug}` : `/tim-kiem?keyword=${encodeURIComponent(m.title)}`);
+        } catch {
+            router.push(`/tim-kiem?keyword=${encodeURIComponent(m.title)}`);
+        } finally {
+            setResolvingId(null);
+        }
+    };
     const tabs: { key: TabKey; label: string }[] = [
         { key: "tap-phim", label: "Tập phim" },
         { key: "the-loai", label: "Thể loại" },
@@ -52,28 +96,8 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
         { key: "dien-vien", label: "Diễn viên" },
     ];
     const [serverIndex, setServerIndex] = useState(0);
-    const [movies, setMovies] = useState<Movie[]>([]);
-    const [loading, setLoading] = useState(false);
     const currentServer = servers[serverIndex];
     const episodes = currentServer?.server_data ?? [];
-
-    const country = movie.country?.map(c => c.slug).join(",") ?? "";
-    const category = movie.category?.map(c => c.slug).join(",") ?? "";
-
-    useEffect(() => {
-        const load = async () => {
-            setLoading(true);
-            const res = await movieService.dataFilterMovie({
-                country,
-                category,
-                limit: 16,
-            });
-            setMovies(res.items);
-            setLoading(false);
-        };
-
-        load();
-    }, [country, category]);
 
     return (
         <>
@@ -130,7 +154,7 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
                                                     className={`                                                    
                                                     relative
                                                     h-[260px] sm:h-[349.33px] lg:h-[200.33px] xl:w-[349.33px] xl:h-[182.77px] overflow-hidden
-                                                    ${(s.server_name == "#Hà Nội (Vietsub)") ? "bg-[#565868]" : ((s.server_name == "#Hà Nội (Lồng Tiếng)") ? "bg-[#1d2e79]" : (s.server_name == "#Hà Nội (Thuyết Minh)") ? "bg-[#297447]" : "bg-[#565868]")} rounded-lg overflow-hidden`
+                                                    ${serverTone(s.server_name).bg} rounded-lg overflow-hidden`
                                                     }
                                                 >
                                                     {/* Ảnh nền: chỉ chiếm 65% bên phải */}
@@ -165,7 +189,7 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
                                                         absolute inset-0
                                                         opacity-30
                                                         mix-blend-soft-light
-                                                        ${(s.server_name == "#Hà Nội (Vietsub)") ? "bg-[#565868]" : ((s.server_name == "#Hà Nội (Lồng Tiếng)") ? "bg-[#1d2e79]" : (s.server_name == "#Hà Nội (Thuyết Minh)") ? "bg-[#297447]" : "bg-[#565868]")} rounded-lg`
+                                                        ${serverTone(s.server_name).bg} rounded-lg`
                                                             }
                                                         />
                                                     </div>
@@ -182,7 +206,7 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
                                                                     text-white
                                                                 "
                                                                     >
-                                                                        {(s.server_name == "#Hà Nội (Vietsub)") ? "Phụ đề" : ((s.server_name == "#Hà Nội (Lồng Tiếng)") ? "Lồng tiếng" : (s.server_name == "#Hà Nội (Thuyết Minh)") ? "Thuyết minh" : "Khác")}
+                                                                        {serverTone(s.server_name).label}
                                                                     </p>
                                                                 </div>
                                                                 {/* Tên phim */}
@@ -266,16 +290,62 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
                         )}
                     </div >
 
-                    <p className="text-white text-[14px] font-medium leading-relaxed whitespace-pre-line mt-5 line-clamp-18">Đề xuất cho bạn</p>
-                    <section className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-                        {loading ? (
-                            <div className="col-span-full flex items-center justify-center py-20">
-                                <ThreeDot variant="bounce" color="#32cd32" size="medium" text="" textColor="" />
-                            </div>
-                        ) : movies.length === 0 ? (
-                            <p className="text-gray-400 col-span-full text-center py-8">Không có phim</p>
+                    {stills.length > 0 && (
+                        <>
+                            <p className="text-white text-[14px] font-medium leading-relaxed whitespace-pre-line mt-5">Hình ảnh</p>
+                            <section className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                                {stills.map((src, i) => (
+                                    <div key={src} className="relative rounded-lg overflow-hidden bg-[#141722] border border-white/[0.06]" style={{ aspectRatio: "16/9" }}>
+                                        <Image
+                                            src={src}
+                                            alt={`${movie.name} - ảnh ${i + 1}`}
+                                            fill
+                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                ))}
+                            </section>
+                        </>
+                    )}
+
+                    <p className="text-white text-[14px] font-medium leading-relaxed whitespace-pre-line mt-5 line-clamp-18">Phim tương tự</p>
+                    <section className="mt-2 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
+                        {!similar?.length ? (
+                            <p className="text-gray-400 col-span-full text-center py-8">Chưa có phim tương tự</p>
                         ) : (
-                            movies.map(movie => <MovieCard key={movie._id} movie={movie} />)
+                            similar.map(m => (
+                                <button
+                                    key={`${m.type}-${m.id}`}
+                                    type="button"
+                                    onClick={() => openSimilar(m)}
+                                    disabled={resolvingId !== null}
+                                    className="group block text-left disabled:opacity-60"
+                                >
+                                    <div className="relative rounded-xl overflow-hidden bg-[#141722] border border-white/[0.06] group-hover:border-green-400/40 transition-all duration-300 group-hover:-translate-y-1" style={{ aspectRatio: "2/3" }}>
+                                        {m.poster && (
+                                            <Image
+                                                src={`${TMDB_IMG}/w342${m.poster}`}
+                                                alt={m.title}
+                                                fill
+                                                sizes="(max-width: 640px) 32vw, (max-width: 1280px) 22vw, 150px"
+                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                        )}
+                                        <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-70 group-hover:opacity-100 transition-opacity" />
+                                        {m.vote > 0 && (
+                                            <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/70 text-[10px] font-bold text-yellow-300">
+                                                <Star className="w-2.5 h-2.5" fill="currentColor" /> {m.vote.toFixed(1)}
+                                            </span>
+                                        )}
+                                        {resolvingId === m.id && (
+                                            <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[11px] text-white">Đang mở…</span>
+                                        )}
+                                    </div>
+                                    <p className="mt-1.5 text-white/85 text-[11.5px] sm:text-[12.5px] font-semibold leading-tight line-clamp-2 group-hover:text-green-400 transition-colors">{m.title}</p>
+                                    {m.year && <p className="text-white/35 text-[10.5px] mt-0.5">{m.year}</p>}
+                                </button>
+                            ))
                         )}
                     </section>
                 </>
@@ -327,7 +397,35 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
 
             {
                 tab === "dien-vien" &&
-                (movie.actor?.length ? (
+                (cast?.length ? (
+                    <div className="mt-2 grid gap-4 grid-cols-[repeat(auto-fill,minmax(96px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(112px,1fr))]">
+                        {cast.map((p) => (
+                            <Link
+                                key={p.id}
+                                href={`/tim-kiem?keyword=${encodeURIComponent(p.name)}`}
+                                className="group text-center"
+                            >
+                                <div className="relative w-[84px] h-[84px] sm:w-[96px] sm:h-[96px] mx-auto rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-green-400/70 transition-all duration-300">
+                                    {p.profile ? (
+                                        <Image
+                                            src={`${TMDB_IMG}/w185${p.profile}`}
+                                            alt={p.name}
+                                            fill
+                                            sizes="96px"
+                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <span className="absolute inset-0 flex items-center justify-center bg-[#1b1e29] text-white/50 text-2xl font-bold">
+                                            {p.name.charAt(0)}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="mt-2 text-white/90 text-[12.5px] font-semibold leading-tight line-clamp-2 group-hover:text-green-400 transition-colors">{p.name}</p>
+                                {p.character && <p className="mt-0.5 text-white/40 text-[11px] leading-tight line-clamp-1">{p.character}</p>}
+                            </Link>
+                        ))}
+                    </div>
+                ) : movie.actor?.length ? (
                     <div className="mt-2 grid gap-3 grid-cols-[repeat(auto-fit,minmax(120px,1fr))]">
                         {movie.actor.map((a, i) => (
                             <a

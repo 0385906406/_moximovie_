@@ -1,11 +1,15 @@
 import React from "react";
 import { Play } from "lucide-react";
 import type { Episode } from "@/types/episode";
+import TmdbScoreBadge from "./TmdbScoreBadge";
 // import type { PlaylistMovie } from "@/types/playlist";
 
 interface MovieActionsRowProps {
     // dữ liệu tập đầu tiên để nút "Xem" hoạt động
     firstEpisode?: Episode | null;
+
+    // điểm TMDB, hiện cạnh nút "Xem"
+    rating?: { voteAverage: number; voteCount: number } | null;
 
     // xử lý hành động
     onPlayFirstEpisode?: () => void;
@@ -29,6 +33,7 @@ interface MovieActionsRowProps {
  */
 const MovieActionsRow: React.FC<MovieActionsRowProps> = ({
     firstEpisode,
+    rating,
     onPlayFirstEpisode,
     // onToggleFavorite,
     // onTogglePlaylistPopup,
@@ -40,7 +45,7 @@ const MovieActionsRow: React.FC<MovieActionsRowProps> = ({
     // playlists,
 }) => {
     return (
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6 pr-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-6 pr-3 py-2">
             {/* Nút Xem tập đầu */}
             {firstEpisode && onPlayFirstEpisode && (
                 <button
@@ -51,6 +56,9 @@ const MovieActionsRow: React.FC<MovieActionsRowProps> = ({
                     <span>Xem</span>
                 </button>
             )}
+
+            {/* Điểm TMDB nằm cạnh nút Xem */}
+            {rating && <TmdbScoreBadge voteAverage={rating.voteAverage} voteCount={rating.voteCount} />}
 
             {/* Nút Yêu thích */}
             {/* <button

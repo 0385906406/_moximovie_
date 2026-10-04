@@ -17,11 +17,11 @@ async function fetchPhim(path: string) {
 
 export async function GET() {
     const [slider, korean, china, vietnam, wibu] = await Promise.all([
-        fetchPhim("phim-le?page=1&sort_field=modified&sort_type=desc&year=2026&limit=10"),
-        fetchPhim("phim-bo?sort_field=modified&sort_type=desc&limit=10&country=han-quoc"),
-        fetchPhim("phim-bo?sort_field=modified&sort_type=desc&limit=10&country=trung-quoc"),
-        fetchPhim("phim-bo?sort_field=modified&sort_type=desc&limit=10&country=viet-nam"),
-        fetchPhim("hoat-hinh?sort_field=modified&sort_type=desc&limit=10&country=nhat-ban"),
+        fetchPhim("phim-le?page=1&sort_field=modified.time&sort_type=desc&year=2026&limit=10"),
+        fetchPhim("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=han-quoc"),
+        fetchPhim("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=trung-quoc"),
+        fetchPhim("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=viet-nam"),
+        fetchPhim("hoat-hinh?sort_field=modified.time&sort_type=desc&limit=10&country=nhat-ban"),
     ]);
 
     return NextResponse.json({ slider, korean, china, vietnam, wibu }, {

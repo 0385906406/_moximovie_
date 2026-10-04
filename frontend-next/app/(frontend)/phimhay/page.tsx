@@ -1,5 +1,6 @@
 import HomePageClient from "@/components/frontend/HomePageClient";
 import type { Movie } from "@/types/movie";
+import { getHotMovies } from "@/lib/hotMovies";
 
 export const revalidate = 300;
 
@@ -18,11 +19,11 @@ async function fetchSection(path: string): Promise<Movie[]> {
 
 export default async function PhimHayPage() {
     const [slider, korean, china, vietnam, wibu] = await Promise.all([
-        fetchSection("phim-le?page=1&sort_field=modified&sort_type=desc&year=2026&limit=10"),
-        fetchSection("phim-bo?sort_field=modified&sort_type=desc&limit=10&country=han-quoc"),
-        fetchSection("phim-bo?sort_field=modified&sort_type=desc&limit=10&country=trung-quoc"),
-        fetchSection("phim-bo?sort_field=modified&sort_type=desc&limit=10&country=viet-nam"),
-        fetchSection("hoat-hinh?sort_field=modified&sort_type=desc&limit=10&country=nhat-ban"),
+        getHotMovies() as unknown as Promise<Movie[]>,
+        fetchSection("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=han-quoc"),
+        fetchSection("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=trung-quoc"),
+        fetchSection("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=viet-nam"),
+        fetchSection("hoat-hinh?sort_field=modified.time&sort_type=desc&limit=10&country=nhat-ban"),
     ]);
 
     return (

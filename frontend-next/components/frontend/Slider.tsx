@@ -11,6 +11,7 @@ import MovieImage from "@/components/frontend/MovieImage";
 import { getImageProps } from "next/image";
 import { movieImageSources } from "@/lib/movieImage";
 import { usePauseOffscreen } from "@/hooks/usePauseOffscreen";
+import { Eye } from "lucide-react";
 
 const INTERVAL     = 7000;
 const SWIPE_THRESH = 50;
@@ -296,6 +297,13 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                                             </span>
                                         ))}
                                     </h2>
+
+                                    {(slide as Movie & { view?: number }).view ? (
+                                        <p className="flex items-center gap-1.5 mt-1.5 text-[12px] text-white/55">
+                                            <Eye size={12} className="text-[#22d3a5]" />
+                                            {((slide as Movie & { view?: number }).view ?? 0).toLocaleString("vi-VN")} lượt xem
+                                        </p>
+                                    ) : null}
 
                                     {slide.origin_name && (
                                         <p className="sl-lead" dangerouslySetInnerHTML={{ __html: slide.origin_name }} />

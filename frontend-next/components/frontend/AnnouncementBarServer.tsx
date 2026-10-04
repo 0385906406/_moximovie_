@@ -17,8 +17,8 @@ async function fetchItems(path: string) {
    Layout bọc component này trong <Suspense> → API chậm cũng không chặn trang. */
 export default async function AnnouncementBarServer() {
     const [series, single] = await Promise.all([
-        fetchItems("phim-bo?sort_field=modified&sort_type=desc&limit=15"),
-        fetchItems("phim-le?sort_field=modified&sort_type=desc&limit=15"),
+        fetchItems("phim-bo?sort_field=modified.time&sort_type=desc&limit=15"),
+        fetchItems("phim-le?sort_field=modified.time&sort_type=desc&limit=15"),
     ]);
 
     const movies: TickerMovie[] = [...series, ...single]

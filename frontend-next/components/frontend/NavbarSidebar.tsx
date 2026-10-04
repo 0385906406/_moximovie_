@@ -12,8 +12,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { NavbarSidebarProps } from "@/types/navbar";
 import { useEffect, useState } from "react";
-import { categories } from "@/data/category";
-import { countries } from "@/data/country";
+import { categories as staticCategories } from "@/data/category";
+import { countries as staticCountries } from "@/data/country";
+import { movieService } from "@/services/movieService";
 import {
     Film,
     Tv2,
@@ -110,6 +111,24 @@ const NavbarSidebar = ({
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isCountryOpen,  setIsCountryOpen]  = useState(false);
     // const [isUserOpen,     setIsUserOpen]     = useState(false);
+
+    /* Thể loại / quốc gia lấy từ API; lỗi thì giữ danh sách có sẵn trong data/ */
+    const [categories, setCategories] = useState(staticCategories);
+    const [countries,  setCountries]  = useState(staticCountries);
+    useEffect(() => {
+        let alive = true;
+        movieService.dataGenres()
+            .then((list: { slug: string; name: string }[]) => {
+                if (alive && list.length) setCategories(list.map(g => ({ value: g.slug, label: g.name })));
+            })
+            .catch(() => {});
+        movieService.dataCountries()
+            .then((list: { slug: string; name: string }[]) => {
+                if (alive && list.length) setCountries(list.map(c => ({ value: c.slug, label: c.name })));
+            })
+            .catch(() => {});
+        return () => { alive = false; };
+    }, []);
 
     /* close all when sidebar closes */
     useEffect(() => {

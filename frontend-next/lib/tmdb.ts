@@ -16,6 +16,7 @@ export interface TmdbCast {
 
 export interface TmdbSimilar {
     id: number;
+    type: "movie" | "tv";
     title: string;
     poster: string | null;
     year?: string;
@@ -80,8 +81,9 @@ export async function getTmdbExtras(tmdb?: { id?: string | number; type?: string
         const similar = titles
             .filter(t => t.poster_path)
             .slice(0, 12)
-            .map(t => ({
+            .map((t): TmdbSimilar => ({
                 id: t.id,
+                type,
                 title: t.title || t.name || "",
                 poster: t.poster_path,
                 year: (t.release_date || t.first_air_date || "").slice(0, 4) || undefined,

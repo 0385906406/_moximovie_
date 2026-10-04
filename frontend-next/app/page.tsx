@@ -28,8 +28,8 @@ async function fetchList(path: string): Promise<ApiItem[]> {
    hiệu ứng cuộn chạy ở components/frontend/Intro/CinemaIntro.tsx */
 export default async function HomeIntro() {
     const [cinema, series] = await Promise.all([
-        fetchList("phim-chieu-rap?sort_field=modified&sort_type=desc&limit=10"),
-        fetchList("phim-bo?sort_field=modified&sort_type=desc&limit=10"),
+        fetchList("phim-chieu-rap?sort_field=modified.time&sort_type=desc&limit=10"),
+        fetchList("phim-bo?sort_field=modified.time&sort_type=desc&limit=10"),
     ]);
 
     /* Xen kẽ phim chiếu rạp và phim bộ cho vòng poster đa dạng */

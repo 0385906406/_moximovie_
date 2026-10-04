@@ -12,7 +12,6 @@ import { movieImageSources } from "@/lib/movieImage";
 /* ══════════════════════════════════
    TRAILER FETCH  (module-level cache)
 ══════════════════════════════════ */
-const TMDB_KEY = "e65862b12156ee1397271e1894f00b2c";
 const _trailerCache = new Map<string, string | null>();
 
 async function fetchTrailerKey(movie: Movie): Promise<string | null> {
@@ -20,19 +19,12 @@ async function fetchTrailerKey(movie: Movie): Promise<string | null> {
     const ck = `${query}|${movie.year}|${movie.type}`;
     if (_trailerCache.has(ck)) return _trailerCache.get(ck) as string | null;
     try {
-        const mt = movie.type === "series" ? "tv" : "movie";
-        const sp = new URLSearchParams({ api_key: TMDB_KEY, language: "en-US", query });
+        /* Tìm trailer qua route server /api/tmdb (key không nằm ở client) */
+        const sp = new URLSearchParams({ action: "trailer", type: movie.type, query });
         if (movie.year) sp.set("year", String(movie.year));
-        const sd = await fetch(`https://api.themoviedb.org/3/search/${mt}?${sp}`).then(r => r.json());
-        const rid = sd.results?.[0]?.id;
-        if (!rid) { _trailerCache.set(ck, null); return null; }
-        const vd = await fetch(`https://api.themoviedb.org/3/${mt}/${rid}/videos?api_key=${TMDB_KEY}`).then(r => r.json());
-        const t = (vd.results as { type: string; site: string; key: string }[])
-            ?.find(x => x.type === "Trailer" && x.site === "YouTube")
-            ?? vd.results?.find((x: { site: string; key: string }) => x.site === "YouTube");
-        const key: string | null = t?.key ?? null;
-        _trailerCache.set(ck, key);
-        return key;
+        const { key } = await fetch(`/api/tmdb?${sp}`).then(r => r.json()) as { key: string | null };
+        _trailerCache.set(ck, key ?? null);
+        return key ?? null;
     } catch {
         _trailerCache.set(ck, null);
         return null;

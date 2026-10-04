@@ -106,9 +106,10 @@ const IDLE_START_MS = 2000; // để trang đầu tiên tải xong, ảnh hiện
 interface LazySectionProps {
     children: React.ReactNode;
     loadMargin?: string;    // khoảng cách bắt đầu load
+    prefetch?: boolean;     // true: tự mount lúc rảnh (chỉ cho vài section đầu, tránh tải hết cùng lúc)
     delay?: number;
 }
-const LazySection = memo(({ children, loadMargin = "400px", delay = 0 }: LazySectionProps) => {
+const LazySection = memo(({ children, loadMargin = "400px", delay = 0, prefetch = false }: LazySectionProps) => {
     const ref       = useRef<HTMLDivElement>(null);
     const [loaded,  setLoaded]  = useState(false);
     const [shown,   setShown]   = useState(false);
@@ -146,7 +147,7 @@ const LazySection = memo(({ children, loadMargin = "400px", delay = 0 }: LazySec
 
         /* Mount trước lúc rảnh → khi cuộn tới section đã sẵn sàng, không render giữa lúc cuộn */
         let alive = true;
-        const idleT = window.setTimeout(() => scheduleIdle(() => { if (alive) setLoaded(true); }), IDLE_START_MS);
+        const idleT = prefetch ? window.setTimeout(() => scheduleIdle(() => { if (alive) setLoaded(true); }), IDLE_START_MS) : 0;
         return () => { alive = false; clearTimeout(idleT); loadIo.disconnect(); revealIo.disconnect(); pauseIo.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -206,6 +207,7 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
             {/* ── Slider: không cần reveal, xuất hiện ngay ── */}
             <Slider initialData={initialData.slider} />
 
+
             {/* ── 4 sections above fold: stagger reveal ngay sau slider ── */}
             <div className="mt-8 px-3 sm:px-5 xl:px-6">
                 <div data-spotlight style={{
@@ -233,9 +235,9 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
             </div>
 
             {/* ── Below fold: load sớm, reveal khi scroll đến ── */}
-            <LazySection loadMargin="600px"><CommingMoviesSection /></LazySection>
-            <LazySection loadMargin="500px"><MoviesInTheatersSection /></LazySection>
-            <LazySection loadMargin="500px"><NewMoviesSection /></LazySection>
+            <LazySection loadMargin="600px" prefetch><CommingMoviesSection /></LazySection>
+            <LazySection loadMargin="500px" prefetch><MoviesInTheatersSection /></LazySection>
+            <LazySection loadMargin="500px" prefetch><NewMoviesSection /></LazySection>
             <LazySection loadMargin="500px"><TopTVSeriesSection /></LazySection>
             <LazySection loadMargin="400px"><CinemaMovieSection /></LazySection>
             <LazySection loadMargin="400px"><TopMoviesSection /></LazySection>
