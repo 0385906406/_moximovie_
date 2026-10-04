@@ -5,6 +5,7 @@ import SEO from "@/components/frontend/SEO";
 import "@/components/frontend/Home/home-sections.css";
 import "@/components/frontend/Home/home-fx.css";
 import HomeFx, { HomeAmbient } from "@/components/frontend/Home/HomeFx";
+import MobileTabBar from "@/components/frontend/MobileTabBar";
 import type { Movie } from "@/types/movie";
 
 import Slider from "@/components/frontend/Slider";
@@ -192,7 +193,7 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
         {/* Thanh tiến trình + hiệu ứng chuột: ở ngoài khối isolate để không bị thanh thông báo che */}
         <HomeFx />
         {/* isolate: nền màu trôi (-z-10) nằm trên nền layout nhưng dưới nội dung */}
-        <div className="relative isolate">
+        <div className="relative isolate pb-[calc(60px+env(safe-area-inset-bottom))] md:pb-0">
             <HomeAmbient />
             <SEO
                 title="MoxiMovie – Xem Phim Mới | Phim Hay | Vietsub HD | Thuyết Minh"
@@ -248,6 +249,7 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
             <LazySection loadMargin="300px"><GhostMoviesSection /></LazySection>
             <LazySection loadMargin="300px"><BrainTeaserSection /></LazySection>
         </div>
+        <MobileTabBar />
         </>
     );
 }

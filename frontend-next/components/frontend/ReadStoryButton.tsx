@@ -11,7 +11,7 @@ const ReadStoryButton = () => {
             title="Đọc truyện"
             className="
                 group
-                fixed bottom-5 left-5
+                fixed bottom-5 max-md:bottom-[calc(76px+env(safe-area-inset-bottom))] left-5
                 w-14 h-14
                 rounded-xl
                 cursor-pointer z-[9999]

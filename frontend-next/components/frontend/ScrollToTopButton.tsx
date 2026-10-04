@@ -55,6 +55,7 @@ export default function ScrollToTopButton() {
     return (
         <>
             <style>{`
+                @media (max-width: 767px) { .stt-btn.stt-btn { bottom: calc(76px + env(safe-area-inset-bottom)); } }
                 .stt-btn {
                     position: fixed;
                     bottom: 24px;

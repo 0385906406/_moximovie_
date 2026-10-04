@@ -11,7 +11,7 @@ import MovieImage from "@/components/frontend/MovieImage";
 import { getImageProps } from "next/image";
 import { movieImageSources } from "@/lib/movieImage";
 import { usePauseOffscreen } from "@/hooks/usePauseOffscreen";
-import { Eye } from "lucide-react";
+import { Eye, Calendar } from "lucide-react";
 
 const INTERVAL     = 7000;
 const SWIPE_THRESH = 50;
@@ -298,27 +298,34 @@ const Slider: React.FC<{ initialData?: Movie[] }> = ({ initialData }) => {
                                         ))}
                                     </h2>
 
-                                    {(slide as Movie & { view?: number }).view ? (
-                                        <p className="flex items-center gap-1.5 mt-1.5 text-[12px] text-white/55">
-                                            <Eye size={12} className="text-[#22d3a5]" />
-                                            {((slide as Movie & { view?: number }).view ?? 0).toLocaleString("vi-VN")} lượt xem
-                                        </p>
-                                    ) : null}
 
                                     {slide.origin_name && (
                                         <p className="sl-lead" dangerouslySetInnerHTML={{ __html: slide.origin_name }} />
                                     )}
 
                                     <div className="sl-meta">
-                                        {slide.quality && <span className="sl-chip sl-chip-q" style={{ "--c": 0 } as React.CSSProperties}>{slide.quality}</span>}
+                                        {slide.quality && (
+                                            <span className="sl-q" style={{ "--c": 0 } as React.CSSProperties}>{slide.quality}</span>
+                                        )}
                                         {(slide.year || slide.time) && (
-                                            <span className="sl-chip sl-chip-t" style={{ "--c": 1 } as React.CSSProperties}>
+                                            <span className="sl-stat" style={{ "--c": 1 } as React.CSSProperties}>
+                                                <Calendar size={12} />
                                                 {[slide.year, slide.time].filter(Boolean).join(" · ")}
                                             </span>
                                         )}
-                                        {cats.map((cat, ci) => (
-                                            <span key={cat.id} className="sl-chip" style={{ "--c": ci + 2 } as React.CSSProperties}>{cat.name}</span>
-                                        ))}
+                                        {(slide as Movie & { view?: number }).view ? (
+                                            <span className="sl-stat sl-stat-hot" style={{ "--c": 2 } as React.CSSProperties}>
+                                                <Eye size={12} />
+                                                {((slide as Movie & { view?: number }).view ?? 0).toLocaleString("vi-VN")} lượt xem
+                                            </span>
+                                        ) : null}
+                                        {cats.length > 0 && (
+                                            <span className="sl-genres">
+                                                {cats.map((cat, ci) => (
+                                                    <span key={cat.id} className="sl-genre" style={{ "--c": ci + 3 } as React.CSSProperties}>{cat.name}</span>
+                                                ))}
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="sl-btns">
@@ -531,12 +538,20 @@ const SLIDER_CSS = `
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @media (max-width: 767px) { .sl-lead { display: none; } }
 
-.sl-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
-.sl-chip { font-size: 10.5px; font-weight: 500; padding: 4px 11px; border-radius: 20px; color: rgba(255,255,255,.55);
-    border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); }
-.sl-chip-q { font-weight: 800; letter-spacing: .16em; text-transform: uppercase; border-radius: 4px; color: #2DD4BF;
-    border-color: rgba(45,212,191,.4); background: rgba(45,212,191,.08); }
-.sl-chip-t { border: none; background: none; padding-left: 2px; padding-right: 2px; color: rgba(255,255,255,.4); letter-spacing: .06em; }
+.sl-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 26px; }
+.sl-q { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #04221b;
+    padding: 5px 10px; border-radius: 6px; background: linear-gradient(135deg, #5eead4, #22d3a5);
+    box-shadow: 0 0 18px rgba(34,211,165,.35); line-height: 1; }
+.sl-stat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 1;
+    color: rgba(255,255,255,.6); }
+.sl-stat svg { color: #2DD4BF; flex-shrink: 0; }
+.sl-stat-hot { color: rgba(255,255,255,.85); font-weight: 600; }
+.sl-genres { display: flex; flex-wrap: wrap; gap: 6px; }
+.sl-genre { font-size: 11px; font-weight: 500; line-height: 1; padding: 6px 11px; border-radius: 999px;
+    color: rgba(255,255,255,.8); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    transition: background .25s, border-color .25s, color .25s; }
+.sl-genre:hover { background: rgba(45,212,191,.12); border-color: rgba(45,212,191,.45); color: #fff; }
+@media (max-width: 767px) { .sl-genre:nth-child(n+3) { display: none; } }
 
 .sl-btns { display: flex; align-items: center; gap: 12px; }
 .sl-cta-fill {
@@ -567,7 +582,9 @@ const SLIDER_CSS = `
 /* Nội dung hiện lần lượt */
 .sl-slide[data-state="active"] .sl-eyebrow { animation: slRevealX .7s ${EASE} .15s both; }
 .sl-slide[data-state="active"] .sl-lead    { animation: slUp .7s ${EASE} .55s both; }
-.sl-slide[data-state="active"] .sl-chip    { animation: slPop .55s cubic-bezier(.34,1.56,.64,1) calc(.65s + var(--c) * .07s) both; }
+.sl-slide[data-state="active"] .sl-q,
+.sl-slide[data-state="active"] .sl-stat,
+.sl-slide[data-state="active"] .sl-genre { animation: slPop .55s cubic-bezier(.34,1.56,.64,1) calc(.65s + var(--c) * .07s) both; }
 .sl-slide[data-state="active"] .sl-btns > * { animation: slUp .7s ${EASE} .85s both; }
 .sl-slide[data-state="active"] .sl-btns > *:nth-child(2) { animation-delay: .95s; }
 .sl-slide[data-state="prev"] .sl-inner { animation: slContentOut .5s ease both; }
