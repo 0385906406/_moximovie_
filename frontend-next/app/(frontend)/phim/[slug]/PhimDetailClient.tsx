@@ -881,7 +881,6 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                                         movie={movie}
                                         servers={server}
                                         cast={initialData?.slug === slug ? initialData?.tmdb?.cast : undefined}
-                                        similar={initialData?.slug === slug ? initialData?.tmdb?.similar : undefined}
                                         currentEpisode={currentEpisode}
                                         onPlayEpisode={handlePlay}
                                         isEpisodeWatched={isEpisodeWatched}

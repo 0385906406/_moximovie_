@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { movieService } from "@/services/movieService";
+import MovieCard from "../MovieCard";
+import { ThreeDot } from "react-loading-indicators";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Play, Star } from "lucide-react";
+import { Play } from "lucide-react";
 import type { Episode } from "@/types/episode";
 import type { Movie } from "@/types/movie";
 import ServerSwitcher from "./ServerSwitcher";
@@ -12,7 +13,7 @@ import type { Server } from "@/types/server";
 import MovieImage from "@/components/frontend/MovieImage";
 import { serverTone } from "@/lib/serverTone";
 import Image from "next/image";
-import type { TmdbCast, TmdbSimilar } from "@/lib/tmdb";
+import type { TmdbCast } from "@/lib/tmdb";
 
 type TabKey = "tap-phim" | "the-loai" | "dao-dien" | "dien-vien";
 
@@ -26,8 +27,6 @@ interface MovieTabsProps {
     servers: Server[];
     /* Diễn viên có ảnh (từ phimapi/TMDB). Không có → tab hiện danh sách tên từ movie.actor */
     cast?: TmdbCast[];
-    /* Phim tương tự từ TMDB. Bấm vào → mở đúng trang phim trên web */
-    similar?: TmdbSimilar[];
 
     onPlayEpisode: (
         ep: Episode,
@@ -50,14 +49,10 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
     movie,
     servers,
     cast,
-    similar,
     isEpisodeWatched,
     onPlayEpisode,
     currentEpisode,
 }) => {
-    const router = useRouter();
-    const [resolvingId, setResolvingId] = useState<number | null>(null);
-
     /* Hình ảnh của bộ phim (tối đa 5 ảnh ngang). Không có thì không hiện mục này */
     const [stills, setStills] = useState<string[]>([]);
     useEffect(() => {
@@ -75,20 +70,6 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
         return () => { alive = false; };
     }, [movie.slug]);
 
-    /* Phim tương tự chỉ có TMDB ID → hỏi phimapi lấy slug rồi mở trang phim.
-       Không tìm thấy trên phimapi thì chuyển sang tìm kiếm theo tên. */
-    const openSimilar = async (m: TmdbSimilar) => {
-        setResolvingId(m.id);
-        try {
-            const res = await fetch(`https://phimapi.com/tmdb/${m.type}/${m.id}`);
-            const slug: string | undefined = res.ok ? (await res.json())?.movie?.slug : undefined;
-            router.push(slug ? `/phim/${slug}` : `/tim-kiem?keyword=${encodeURIComponent(m.title)}`);
-        } catch {
-            router.push(`/tim-kiem?keyword=${encodeURIComponent(m.title)}`);
-        } finally {
-            setResolvingId(null);
-        }
-    };
     const tabs: { key: TabKey; label: string }[] = [
         { key: "tap-phim", label: "Tập phim" },
         { key: "the-loai", label: "Thể loại" },
@@ -96,8 +77,28 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
         { key: "dien-vien", label: "Diễn viên" },
     ];
     const [serverIndex, setServerIndex] = useState(0);
+    const [movies, setMovies] = useState<Movie[]>([]);
+    const [loading, setLoading] = useState(false);
     const currentServer = servers[serverIndex];
     const episodes = currentServer?.server_data ?? [];
+
+    const country = movie.country?.map(c => c.slug).join(",") ?? "";
+    const category = movie.category?.map(c => c.slug).join(",") ?? "";
+
+    useEffect(() => {
+        const load = async () => {
+            setLoading(true);
+            const res = await movieService.dataFilterMovie({
+                country,
+                category,
+                limit: 16,
+            });
+            setMovies(res.items);
+            setLoading(false);
+        };
+
+        load();
+    }, [country, category]);
 
     return (
         <>
@@ -309,43 +310,16 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
                         </>
                     )}
 
-                    <p className="text-white text-[14px] font-medium leading-relaxed whitespace-pre-line mt-5 line-clamp-18">Phim tương tự</p>
-                    <section className="mt-2 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
-                        {!similar?.length ? (
-                            <p className="text-gray-400 col-span-full text-center py-8">Chưa có phim tương tự</p>
+                    <p className="text-white text-[14px] font-medium leading-relaxed whitespace-pre-line mt-5 line-clamp-18">Đề xuất cho bạn</p>
+                    <section className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+                        {loading ? (
+                            <div className="col-span-full flex items-center justify-center py-20">
+                                <ThreeDot variant="bounce" color="#32cd32" size="medium" text="" textColor="" />
+                            </div>
+                        ) : movies.length === 0 ? (
+                            <p className="text-gray-400 col-span-full text-center py-8">Không có phim</p>
                         ) : (
-                            similar.map(m => (
-                                <button
-                                    key={`${m.type}-${m.id}`}
-                                    type="button"
-                                    onClick={() => openSimilar(m)}
-                                    disabled={resolvingId !== null}
-                                    className="group block text-left disabled:opacity-60"
-                                >
-                                    <div className="relative rounded-xl overflow-hidden bg-[#141722] border border-white/[0.06] group-hover:border-green-400/40 transition-all duration-300 group-hover:-translate-y-1" style={{ aspectRatio: "2/3" }}>
-                                        {m.poster && (
-                                            <Image
-                                                src={`${TMDB_IMG}/w342${m.poster}`}
-                                                alt={m.title}
-                                                fill
-                                                sizes="(max-width: 640px) 32vw, (max-width: 1280px) 22vw, 150px"
-                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                        )}
-                                        <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-70 group-hover:opacity-100 transition-opacity" />
-                                        {m.vote > 0 && (
-                                            <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/70 text-[10px] font-bold text-yellow-300">
-                                                <Star className="w-2.5 h-2.5" fill="currentColor" /> {m.vote.toFixed(1)}
-                                            </span>
-                                        )}
-                                        {resolvingId === m.id && (
-                                            <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[11px] text-white">Đang mở…</span>
-                                        )}
-                                    </div>
-                                    <p className="mt-1.5 text-white/85 text-[11.5px] sm:text-[12.5px] font-semibold leading-tight line-clamp-2 group-hover:text-green-400 transition-colors">{m.title}</p>
-                                    {m.year && <p className="text-white/35 text-[10.5px] mt-0.5">{m.year}</p>}
-                                </button>
-                            ))
+                            movies.map(movie => <MovieCard key={movie._id} movie={movie} />)
                         )}
                     </section>
                 </>
