@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import type { Movie } from "@/types/movie";
 import MovieImage from "@/components/frontend/MovieImage";
+import { durationLabel } from "@/lib/movieTime";
 
 interface MovieSidebarProps {
     movie: Movie;
@@ -144,7 +145,7 @@ const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
                         <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>Hoàn tất · {movie.episode_current} tập</span>
+                        <span>Hoàn tất{movie.episode_total ? ` · ${movie.episode_total} tập` : ""}</span>
                     </div>
                 )}
             </div>
@@ -182,8 +183,8 @@ const MovieSidebar: React.FC<MovieSidebarProps> = ({ movie }) => {
                 {movie.episode_total && (
                     <InfoRow label="Tổng số tập">{movie.episode_total} tập</InfoRow>
                 )}
-                {movie.time > 0 && (
-                    <InfoRow label="Thời lượng">{movie.time} phút</InfoRow>
+                {durationLabel(movie.time) && (
+                    <InfoRow label="Thời lượng">{durationLabel(movie.time)}</InfoRow>
                 )}
                 {movie.lang && (
                     <InfoRow label="Ngôn ngữ">{movie.lang}</InfoRow>

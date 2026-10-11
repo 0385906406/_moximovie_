@@ -1,9 +1,10 @@
 import SEO from "@/components/frontend/SEO";
 import CinemaIntro, { type IntroMovie } from "@/components/frontend/Intro/CinemaIntro";
+import { movieApi, type ListQuery } from "@/lib/movieApi";
+import { getServerSource } from "@/lib/movieSource.server";
+import type { MovieSource } from "@/lib/movieSource";
 
 export const revalidate = 300;
-
-const PHIM_API = "https://phimapi.com/v1/api/danh-sach";
 
 interface ApiItem {
     name?: string;
@@ -13,12 +14,10 @@ interface ApiItem {
     year?: number;
 }
 
-async function fetchList(path: string): Promise<ApiItem[]> {
+async function fetchList(source: MovieSource, query: ListQuery): Promise<ApiItem[]> {
     try {
-        const res = await fetch(`${PHIM_API}/${path}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(6000) });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json?.data?.items ?? [];
+        const { items } = await movieApi(source).list(query, { next: { revalidate: 300 }, signal: AbortSignal.timeout(6000) });
+        return items;
     } catch {
         return [];
     }
@@ -27,9 +26,10 @@ async function fetchList(path: string): Promise<ApiItem[]> {
 /* Trang giới thiệu kiểu rạp chiếu phim: poster thật lấy trên server (cache 5 phút),
    hiệu ứng cuộn chạy ở components/frontend/Intro/CinemaIntro.tsx */
 export default async function HomeIntro() {
+    const source = await getServerSource();
     const [cinema, series] = await Promise.all([
-        fetchList("phim-chieu-rap?sort_field=modified.time&sort_type=desc&limit=10"),
-        fetchList("phim-bo?sort_field=modified.time&sort_type=desc&limit=10"),
+        fetchList(source, { type: "theater", limit: 10 }),
+        fetchList(source, { type: "tv", limit: 10 }),
     ]);
 
     /* Xen kẽ phim chiếu rạp và phim bộ cho vòng poster đa dạng */

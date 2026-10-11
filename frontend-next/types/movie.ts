@@ -15,7 +15,8 @@ export interface Movie {
     category: Category[];
     country: Country[];
     quality: string;
-    time: number;
+    /* API trả chuỗi ("109 phút", "60 phút / tập") — đọc qua lib/movieTime */
+    time: string | number;
     episode_total: string;
     release_date: number;
     year: number;
@@ -30,7 +31,7 @@ export interface Movie {
     movie: "single" | "series";
     type: "single" | "series";
     status: "ongoing" | "completed" | "upcoming";
-    /* Mã phim bên TMDB do phimapi trả kèm — dùng để lấy diễn viên, trailer, phim tương tự */
+    /* Mã phim bên TMDB do API phim trả kèm — dùng để lấy diễn viên, trailer, phim tương tự */
     tmdb?: { id?: string | number; type?: "movie" | "tv" | string; season?: number | null; vote_average?: number; vote_count?: number };
     createdAt: string;
     updatedAt: string;

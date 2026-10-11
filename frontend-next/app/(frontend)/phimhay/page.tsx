@@ -1,34 +1,34 @@
 import HomePageClient from "@/components/frontend/HomePageClient";
 import type { Movie } from "@/types/movie";
 import { getHotMovies } from "@/lib/hotMovies";
+import { movieApi, type ListQuery } from "@/lib/movieApi";
+import type { MovieSource } from "@/lib/movieSource";
+import { getServerSource } from "@/lib/movieSource.server";
 
 export const revalidate = 300;
 
-const PHIM_API = "https://phimapi.com/v1/api/danh-sach";
-
-async function fetchSection(path: string): Promise<Movie[]> {
+async function fetchSection(source: MovieSource, query: ListQuery): Promise<Movie[]> {
     try {
-        const res = await fetch(`${PHIM_API}/${path}`, { next: { revalidate: 300 } });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json?.data?.items ?? [];
+        const { items } = await movieApi(source).list({ limit: 10, ...query }, { next: { revalidate: 300 } });
+        return items;
     } catch {
         return [];
     }
 }
 
 export default async function PhimHayPage() {
+    const source = await getServerSource();
     const [slider, korean, china, vietnam, wibu] = await Promise.all([
-        getHotMovies() as unknown as Promise<Movie[]>,
-        fetchSection("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=han-quoc"),
-        fetchSection("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=trung-quoc"),
-        fetchSection("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=viet-nam"),
-        fetchSection("hoat-hinh?sort_field=modified.time&sort_type=desc&limit=10&country=nhat-ban"),
+        getHotMovies(source) as unknown as Promise<Movie[]>,
+        fetchSection(source, { type: "tv", country: "han-quoc" }),
+        fetchSection(source, { type: "tv", country: "trung-quoc" }),
+        fetchSection(source, { type: "tv", country: "viet-nam" }),
+        fetchSection(source, { type: "animation", country: "nhat-ban" }),
     ]);
 
     return (
         <HomePageClient
-            initialData={{ slider, korean, china, vietnam, wibu }}
+            initialData={{ slider, korean, china, vietnam, wibu, source }}
         />
     );
 }

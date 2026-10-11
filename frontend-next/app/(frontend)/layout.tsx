@@ -5,6 +5,7 @@ import AnnouncementBar from "@/components/frontend/AnnouncementBar";
 import AnnouncementBarServer from "@/components/frontend/AnnouncementBarServer";
 import ReadStoryButton from "@/components/frontend/ReadStoryButton";
 import ScrollToTopButton from "@/components/frontend/ScrollToTopButton";
+import SourceSettings from "@/components/frontend/SourceSettings";
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -14,6 +15,7 @@ export default function FrontendLayout({ children }: { children: React.ReactNode
             </Suspense>
             <ReadStoryButton />
             <ScrollToTopButton />
+            <SourceSettings />
             <Navbar />
             <div className="flex-1">
                 {children}

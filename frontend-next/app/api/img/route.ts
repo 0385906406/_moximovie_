@@ -8,6 +8,7 @@ const ALLOWED_HOSTS = new Set([
     "phimimg.com",
     "img.phimapi.com",
     "image.tmdb.org",
+    "node-img-akm-cache.onflixcdn.com",
     "img.otruyenapi.com",
     "sv1.otruyencdn.com",
     "res.cloudinary.com",

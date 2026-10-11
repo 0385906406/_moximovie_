@@ -12,6 +12,7 @@ import SEO from "@/components/frontend/SEO";
 import type { Movie } from "@/types/movie";
 
 import { movieService } from "@/services/movieService";
+import { getClientSource } from "@/lib/movieSource";
 interface PaginationState {
     current_page: number;
     last_page: number;
@@ -79,7 +80,8 @@ function PhimHoatHinhPage() {
             const res = await movieService.dataFilterMovie({
                 type_list: "hoat-hinh",
                 page,
-                year: "2025",
+                /* Máy chủ trong nước giữ như cũ (hoạt hình 2025); máy chủ quốc tế ít phim nên không lọc năm */
+                year: getClientSource() === "phimapi" ? "2025" : undefined,
                 country,
                 limit: 32,
             });

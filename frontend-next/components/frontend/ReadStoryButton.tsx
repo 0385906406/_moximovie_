@@ -1,9 +1,12 @@
 ﻿"use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const ReadStoryButton = () => {
     const router = useRouter();
+    const pathname = usePathname();
+    /* Ẩn trong phòng xem chung (đè lên danh sách tập) */
+    if (/^\/phong\/[^/]+/.test(pathname ?? "")) return null;
 
     return (
         <div

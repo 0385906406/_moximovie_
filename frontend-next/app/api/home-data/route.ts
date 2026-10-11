@@ -1,27 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { movieApi, type ListQuery } from "@/lib/movieApi";
+import { parseSource, type MovieSource } from "@/lib/movieSource";
+import { getServerSource } from "@/lib/movieSource.server";
 
 export const revalidate = 300; // Vercel cache 5 phút
 
-const PHIM = "https://phimapi.com/v1/api/danh-sach";
-
-async function fetchPhim(path: string) {
+async function fetchPhim(source: MovieSource, query: ListQuery) {
     try {
-        const res = await fetch(`${PHIM}/${path}`, { next: { revalidate: 300 } });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json?.data?.items ?? [];
+        const { items } = await movieApi(source).list({ limit: 10, ...query }, { next: { revalidate: 300 } });
+        return items;
     } catch {
         return [];
     }
 }
 
-export async function GET() {
+/* ?source=phimapi|vodphim; bỏ trống → theo cookie/vị trí người xem */
+export async function GET(req: NextRequest) {
+    const source = parseSource(req.nextUrl.searchParams.get("source")) ?? await getServerSource();
     const [slider, korean, china, vietnam, wibu] = await Promise.all([
-        fetchPhim("phim-le?page=1&sort_field=modified.time&sort_type=desc&year=2026&limit=10"),
-        fetchPhim("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=han-quoc"),
-        fetchPhim("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=trung-quoc"),
-        fetchPhim("phim-bo?sort_field=modified.time&sort_type=desc&limit=10&country=viet-nam"),
-        fetchPhim("hoat-hinh?sort_field=modified.time&sort_type=desc&limit=10&country=nhat-ban"),
+        fetchPhim(source, { type: "single", year: 2026 }),
+        fetchPhim(source, { type: "tv", country: "han-quoc" }),
+        fetchPhim(source, { type: "tv", country: "trung-quoc" }),
+        fetchPhim(source, { type: "tv", country: "viet-nam" }),
+        fetchPhim(source, { type: "animation", country: "nhat-ban" }),
     ]);
 
     return NextResponse.json({ slider, korean, china, vietnam, wibu }, {

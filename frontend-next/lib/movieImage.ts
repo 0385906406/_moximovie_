@@ -7,13 +7,16 @@ export interface MovieImageFields {
     thumb_url?: string | null;
 }
 
-/* phimapi trả về lúc thì URL đầy đủ, lúc thì path tương đối trên phimimg.com */
+/* API phim thường trả URL đầy đủ; path tương đối (phimapi) thì ghép với phimimg.com.
+   Riêng path dạng TMDB ("t/p/w780/abc.jpg") là ảnh của TMDB, không có trên phimimg.com */
 export function toMovieImgUrl(path?: string | null) {
     const p = path?.trim();
     if (!p) return "";
     if (/^https?:\/\//.test(p)) return p;
     if (p.startsWith("//")) return `https:${p}`;
-    return `https://phimimg.com/${p.replace(/^\/+/, "")}`;
+    const rel = p.replace(/^\/+/, "");
+    if (/^t\/p\//.test(rel)) return `https://image.tmdb.org/${rel}`;
+    return `https://phimimg.com/${rel}`;
 }
 
 /* Danh sách ảnh theo thứ tự ưu tiên: ảnh muốn dùng trước, ảnh còn lại làm dự phòng */

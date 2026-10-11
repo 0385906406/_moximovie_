@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { categories } from "@/data/category";
 import { countries } from "@/data/country";
+import { movieApi } from "@/lib/movieApi";
+import { useMovieSource } from "@/hooks/useMovieSource";
 
 type Filters = {
     country: string[];
@@ -36,13 +38,19 @@ const VERSION_ITEMS = [
     { value: "long-tieng", label: "Lồng tiếng" },
 ];
 
-/* single-select fields */
-const SINGLE = new Set<keyof Filters>(["type", "year"]);
+/* single-select fields. Nguồn VodPhim chỉ lọc được 1 quốc gia/thể loại → chọn 1 */
+const SINGLE_ALWAYS: (keyof Filters)[] = ["type", "year"];
+const SINGLE_WHEN_LIMITED: (keyof Filters)[] = ["country", "category"];
 
 export default function MovieSearch() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const router = useRouter();
+    const api = movieApi(useMovieSource());
+    const SINGLE = useMemo(
+        () => new Set<keyof Filters>(api.multiFilter ? SINGLE_ALWAYS : [...SINGLE_ALWAYS, ...SINGLE_WHEN_LIMITED]),
+        [api.multiFilter],
+    );
 
     const [filters, setFilters] = useState<Filters>({
         country: [""], type: [""], category: [""], versions: [""], year: [""],
@@ -212,18 +220,22 @@ export default function MovieSearch() {
 
                     <div className="h-px ml-[88px]" style={{ background: "rgba(255,255,255,0.05)" }} />
 
-                    {/* "Thuyết minh" = dài nhất */}
-                    <Row label="Phiên bản" cellW="104px">
-                        {VERSION_ITEMS.map(item => (
-                            <Pill key={item.value}
-                                selected={filters.versions.includes(item.value)}
-                                onClick={() => toggle("versions", item.value || "Tất cả")}>
-                                {item.label}
-                            </Pill>
-                        ))}
-                    </Row>
+                    {/* Chỉ nguồn phimapi lọc được theo phiên bản. "Thuyết minh" = dài nhất */}
+                    {api.langFilter && (
+                        <>
+                            <Row label="Phiên bản" cellW="104px">
+                                {VERSION_ITEMS.map(item => (
+                                    <Pill key={item.value}
+                                        selected={filters.versions.includes(item.value)}
+                                        onClick={() => toggle("versions", item.value || "Tất cả")}>
+                                        {item.label}
+                                    </Pill>
+                                ))}
+                            </Row>
 
-                    <div className="h-px ml-[88px]" style={{ background: "rgba(255,255,255,0.05)" }} />
+                            <div className="h-px ml-[88px]" style={{ background: "rgba(255,255,255,0.05)" }} />
+                        </>
+                    )}
 
                     {/* tất cả 4 ký tự, "Tất cả" = 6 */}
                     <Row label="Năm" cellW="64px">

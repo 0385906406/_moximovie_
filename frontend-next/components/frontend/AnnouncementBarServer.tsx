@@ -1,13 +1,12 @@
 import AnnouncementBar, { type TickerMovie } from "@/components/frontend/AnnouncementBar";
+import { movieApi } from "@/lib/movieApi";
+import type { MovieSource } from "@/lib/movieSource";
+import { getServerSource } from "@/lib/movieSource.server";
 
-const PHIM_API = "https://phimapi.com/v1/api/danh-sach";
-
-async function fetchItems(path: string) {
+async function fetchItems(source: MovieSource, type: "single" | "tv") {
     try {
-        const res = await fetch(`${PHIM_API}/${path}`, { next: { revalidate: 300 } });
-        if (!res.ok) return [];
-        const json = await res.json();
-        return json?.data?.items ?? [];
+        const { items } = await movieApi(source).list({ type, limit: 15 }, { next: { revalidate: 300 } });
+        return items;
     } catch {
         return [];
     }
@@ -16,9 +15,10 @@ async function fetchItems(path: string) {
 /* Tải danh sách phim cho thanh chữ chạy trên server, cache 5 phút.
    Layout bọc component này trong <Suspense> → API chậm cũng không chặn trang. */
 export default async function AnnouncementBarServer() {
+    const source = await getServerSource();
     const [series, single] = await Promise.all([
-        fetchItems("phim-bo?sort_field=modified.time&sort_type=desc&limit=15"),
-        fetchItems("phim-le?sort_field=modified.time&sort_type=desc&limit=15"),
+        fetchItems(source, "tv"),
+        fetchItems(source, "single"),
     ]);
 
     const movies: TickerMovie[] = [...series, ...single]

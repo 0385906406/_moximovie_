@@ -28,6 +28,7 @@ import {
     // LogOut,
     // UserCircle2,
     Newspaper,
+    Users,
 } from "lucide-react";
 
 /* ── icon map cho từng route ── */
@@ -35,6 +36,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     "/phim-le":            <Film size={16} />,
     "/phim-bo":            <Tv2 size={16} />,
     "/hoat-hinh":          <Laugh size={16} />,
+    "/phong":              <Users size={16} />,
     "/the-loai":           <Tag size={16} />,
     "/quoc-gia":           <Globe size={16} />,
     "/tim-kiem":           <Laugh size={16} />,

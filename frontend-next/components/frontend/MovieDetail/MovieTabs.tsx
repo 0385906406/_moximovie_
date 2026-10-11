@@ -25,8 +25,10 @@ interface MovieTabsProps {
 
     movie: Movie;
     servers: Server[];
-    /* Diễn viên có ảnh (từ phimapi/TMDB). Không có → tab hiện danh sách tên từ movie.actor */
+    /* Diễn viên có ảnh (từ TMDB). Không có → tab hiện danh sách tên từ movie.actor */
     cast?: TmdbCast[];
+    /* Ảnh ngang của phim (từ TMDB). Không có thì không hiện mục hình ảnh */
+    stills?: string[];
 
     onPlayEpisode: (
         ep: Episode,
@@ -49,27 +51,11 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
     movie,
     servers,
     cast,
+    stills = [],
     isEpisodeWatched,
     onPlayEpisode,
     currentEpisode,
 }) => {
-    /* Hình ảnh của bộ phim (tối đa 5 ảnh ngang). Không có thì không hiện mục này */
-    const [stills, setStills] = useState<string[]>([]);
-    useEffect(() => {
-        let alive = true;
-        movieService.dataImages(movie.slug)
-            .then((d: { images?: { type: string; file_path: string }[]; image_sizes?: { backdrop?: { w780?: string } } } | null) => {
-                const base = d?.image_sizes?.backdrop?.w780;
-                const urls = (d?.images ?? [])
-                    .filter(img => img.type === "backdrop" && img.file_path)
-                    .slice(0, 5)
-                    .map(img => `${base ?? "https://image.tmdb.org/t/p/w780"}${img.file_path}`);
-                if (alive) setStills(urls);
-            })
-            .catch(() => { if (alive) setStills([]); });
-        return () => { alive = false; };
-    }, [movie.slug]);
-
     const tabs: { key: TabKey; label: string }[] = [
         { key: "tap-phim", label: "Tập phim" },
         { key: "the-loai", label: "Thể loại" },
@@ -88,13 +74,19 @@ const MovieTabs: React.FC<MovieTabsProps> = ({
     useEffect(() => {
         const load = async () => {
             setLoading(true);
-            const res = await movieService.dataFilterMovie({
-                country,
-                category,
-                limit: 16,
-            });
-            setMovies(res.items);
-            setLoading(false);
+            try {
+                const res = await movieService.dataFilterMovie({
+                    country,
+                    category,
+                    limit: 16,
+                });
+                /* Bỏ chính phim đang xem khỏi danh sách phim tương tự */
+                setMovies(res.items.filter((m: Movie) => m.slug !== movie.slug));
+            } catch {
+                setMovies([]);
+            } finally {
+                setLoading(false);
+            }
         };
 
         load();

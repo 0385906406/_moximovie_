@@ -35,6 +35,7 @@ import MovieImage from "@/components/frontend/MovieImage";
 import MovieTmdbExtras from "@/components/frontend/MovieDetail/MovieTmdbExtras";
 import TrailerModal from "@/components/frontend/MovieDetail/TrailerModal";
 import type { TmdbExtras } from "@/lib/tmdb";
+import { toMovieImgUrl } from "@/lib/movieImage";
 
 // ── helper ──
 // const safeMovieObject = (m: Movie | null) => {
@@ -653,7 +654,7 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                     title={`${movie.name} (${movie.year}) - Xem ${movie.name} Vietsub HD Online | MoxiMovie`}
                     description={`Xem phim ${movie.name} (${movie.year}) Vietsub HD 1080p tại MoxiMovie. Thể loại: ${movie.category?.join(", ")}, Đạo diễn: ${movie.director || "Chưa có"}, Diễn viên: ${movie.actor?.slice(0, 5).join(", ")}. Trải nghiệm xem phim mượt mà, cập nhật nhanh, không quảng cáo độc hại.`}
                     canonical={`https://www.moximovie.click/phim/${movie.slug}`}
-                    image={movie.thumb_url || "https://www.moximovie.click/default-og.jpg"}
+                    image={toMovieImgUrl(movie.thumb_url) || "https://www.moximovie.click/default-og.jpg"}
                     type="movie"
                     name={movie.name}
                 />
@@ -881,6 +882,7 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                                         movie={movie}
                                         servers={server}
                                         cast={initialData?.slug === slug ? initialData?.tmdb?.cast : undefined}
+                                        stills={initialData?.slug === slug ? initialData?.tmdb?.stills : undefined}
                                         currentEpisode={currentEpisode}
                                         onPlayEpisode={handlePlay}
                                         isEpisodeWatched={isEpisodeWatched}

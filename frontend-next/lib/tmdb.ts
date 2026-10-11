@@ -1,4 +1,4 @@
-/* ── Dữ liệu bổ sung từ TMDB cho trang phim: điểm, diễn viên, trailer, phim tương tự ──
+/* ── Dữ liệu bổ sung từ TMDB cho trang phim: điểm, diễn viên, trailer, phim tương tự, hình ảnh ──
    Chạy trên server (page.tsx), cache 1 ngày → mỗi phim chỉ gọi TMDB tối đa 1 lần/ngày. */
 
 const TMDB_API = "https://api.themoviedb.org/3";
@@ -35,6 +35,8 @@ export interface TmdbExtras {
     cast: TmdbCast[];
     trailer: { key: string; name: string } | null;
     similar: TmdbSimilar[];
+    /* Ảnh ngang (backdrop) của phim, URL đầy đủ, tối đa 5 ảnh */
+    stills: string[];
 }
 
 interface RawVideo { site: string; type: string; key: string; name: string; iso_639_1: string; official?: boolean }
@@ -57,8 +59,8 @@ export async function getTmdbExtras(tmdb?: { id?: string | number; type?: string
     const type = tmdb?.type === "tv" ? "tv" : tmdb?.type === "movie" ? "movie" : null;
     if (!TMDB_KEY || !id || !type) return null;
 
-    const append = type === "tv" ? "aggregate_credits,videos,recommendations,similar" : "credits,videos,recommendations,similar";
-    const url = `${TMDB_API}/${type}/${id}?api_key=${TMDB_KEY}&language=vi-VN&append_to_response=${append}&include_video_language=vi,en,null`;
+    const append = type === "tv" ? "aggregate_credits,videos,recommendations,similar,images" : "credits,videos,recommendations,similar,images";
+    const url = `${TMDB_API}/${type}/${id}?api_key=${TMDB_KEY}&language=vi-VN&append_to_response=${append}&include_video_language=vi,en,null&include_image_language=null,en,vi`;
 
     try {
         const res = await fetch(url, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(6000) });
@@ -102,6 +104,10 @@ export async function getTmdbExtras(tmdb?: { id?: string | number; type?: string
             cast,
             trailer: pickTrailer(j.videos?.results ?? []),
             similar,
+            stills: ((j.images?.backdrops ?? []) as { file_path?: string }[])
+                .filter(b => b.file_path)
+                .slice(0, 5)
+                .map(b => `${TMDB_IMG}/w780${b.file_path}`),
         };
     } catch {
         return null;

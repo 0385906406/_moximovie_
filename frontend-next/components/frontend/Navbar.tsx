@@ -36,6 +36,7 @@ const navbarItems: NavbarItem[] = [
     { to: "/phim-le",   children: "Phim Lẻ" },
     { to: "/phim-bo",   children: "Phim Bộ" },
     { to: "/hoat-hinh", children: "Hoạt Hình" },
+    { to: "/phong",     children: "Xem Chung" },
     { to: "/the-loai",  children: "Thể loại ▾" },
     { to: "/quoc-gia",  children: "Quốc gia ▾" },
 ];
@@ -46,6 +47,7 @@ const NAV_LINKS = [
     { to: "/phim-le",   label: "Phim Lẻ" },
     { to: "/phim-bo",   label: "Phim Bộ" },
     { to: "/hoat-hinh", label: "Hoạt Hình" },
+    { to: "/phong",     label: "Xem Chung" },
 ];
 
 const Navbar = () => {

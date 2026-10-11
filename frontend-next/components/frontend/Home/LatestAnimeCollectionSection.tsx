@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Play, Info } from "lucide-react";
 import { movieService } from "@/services/movieService";
 import type { Movie } from "@/types/movie";
+import { toMinutes } from "@/lib/movieTime";
 import MovieImage from "@/components/frontend/MovieImage";
 import { usePauseOffscreen } from "@/hooks/usePauseOffscreen";
 
@@ -182,11 +183,11 @@ const LatestAnimeCollectionSection = () => {
                                 }}>{slide.year}</span>
                             )}
 
-                            {slide.time > 0 && (
+                            {toMinutes(slide.time) > 0 && (
                                 <span style={{
                                     color: "rgba(255,255,255,0.6)",
                                     fontFamily: "var(--font-primary)", fontSize: "0.68rem", fontWeight: 500,
-                                }}>{formatTime(slide.time)}</span>
+                                }}>{formatTime(toMinutes(slide.time))}</span>
                             )}
 
                             {slide.episode_current && (

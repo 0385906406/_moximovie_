@@ -55,10 +55,11 @@ export default function ScrollToTopButton() {
     return (
         <>
             <style>{`
-                @media (max-width: 767px) { .stt-btn.stt-btn { bottom: calc(76px + env(safe-area-inset-bottom)); } }
+                /* Nằm trên nút cài đặt máy chủ (SourceSettings) */
+                @media (max-width: 767px) { .stt-btn.stt-btn { bottom: calc(132px + env(safe-area-inset-bottom)); } }
                 .stt-btn {
                     position: fixed;
-                    bottom: 24px;
+                    bottom: 80px;
                     right: 20px;
                     width: ${SIZE}px;
                     height: ${SIZE}px;

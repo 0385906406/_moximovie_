@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Play, Info } from "lucide-react";
 import type { Movie } from "@/types/movie";
 import MovieImage from "@/components/frontend/MovieImage";
+import { toMinutes } from "@/lib/movieTime";
 
 interface Props {
     movie: Movie;
@@ -150,8 +151,8 @@ export function MovieHoverPopup({ movie, children }: Props) {
 
                         <div className="flex items-center gap-2 flex-wrap text-[12px] text-[#a0a8b8]">
                             {movie.year && <span>{movie.year}</span>}
-                            {movie.time > 0 && (
-                                <><span className="text-[#3a3f50]">·</span><span>{formatTime(movie.time)}</span></>
+                            {toMinutes(movie.time) > 0 && (
+                                <><span className="text-[#3a3f50]">·</span><span>{formatTime(toMinutes(movie.time))}</span></>
                             )}
                             {movie.lang && (
                                 <><span className="text-[#3a3f50]">·</span><span>{movie.lang}</span></>

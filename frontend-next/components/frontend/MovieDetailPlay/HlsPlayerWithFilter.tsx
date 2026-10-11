@@ -20,7 +20,7 @@ interface VariantLevel {
 /* ══════════════════════════════════════════════
    COMPONENT
 ══════════════════════════════════════════════ */
-const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, subtitle, prevEpisode, nextEpisode }) => {
+const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, subtitle, prevEpisode, nextEpisode, onVideo, syncMode, autoStart: autoStartProp }) => {
     const videoRef   = useRef<HTMLVideoElement | null>(null);
     const hlsRef     = useRef<Hls | null>(null);
     const blobUrlRef = useRef<string | null>(null);
@@ -51,11 +51,18 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
     }, []);
     useEffect(() => () => clearTimeout(curtainTimer.current), []);
 
+    /* Phòng xem chung lấy thẻ video để đồng bộ */
+    useEffect(() => {
+        onVideo?.(videoRef.current);
+        return () => onVideo?.(null);
+    }, [onVideo]);
+
     /* Ambient: ánh màu của video toả ra quanh khung phát (chỉ máy tính, tốn GPU) */
     const [ambientOk, setAmbientOk] = useState(false);
     const [ambient,   setAmbient]   = useState(true);
 
     useEffect(() => {
+        if (autoStartProp) autoStart.current = true;
         try {
             if (sessionStorage.getItem(AUTOPLAY_FLAG)) {
                 sessionStorage.removeItem(AUTOPLAY_FLAG);
@@ -233,6 +240,8 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
                 openCurtain();
                 video.play().catch(() => { setOverlayHidden(false); closeCurtain(); });
             }
+            /* Phòng xem chung: vị trí do chủ phòng quyết định, không dùng vị trí xem dở của máy này */
+            if (syncMode) return;
             const saved = localStorage.getItem(PROG_KEY);
             if (!saved || !video) return;
             const t = parseFloat(saved);

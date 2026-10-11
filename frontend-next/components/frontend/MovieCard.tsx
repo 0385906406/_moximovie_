@@ -8,6 +8,7 @@ import type { Movie } from "@/types/movie";
 import MovieImage from "@/components/frontend/MovieImage";
 import { getImageProps } from "next/image";
 import { movieImageSources } from "@/lib/movieImage";
+import { toMinutes } from "@/lib/movieTime";
 
 /* ══════════════════════════════════
    TRAILER FETCH  (module-level cache)
@@ -401,9 +402,9 @@ function MovieCard({ movie, priority = false }: { movie: Movie; priority?: boole
                                     <CalendarDays size={11} />{movie.year}
                                 </span>
                             )}
-                            {movie.time > 0 && (
+                            {toMinutes(movie.time) > 0 && (
                                 <span className="flex items-center gap-1 text-[11.5px] text-white/40">
-                                    <Clock size={11} />{formatTime(movie.time)}
+                                    <Clock size={11} />{formatTime(toMinutes(movie.time))}
                                 </span>
                             )}
                             {movie.lang && (

@@ -14,9 +14,13 @@ import { toast }        from "sonner";
 
 import SEO                from "@/components/frontend/SEO";
 import { ThreeDot }       from "react-loading-indicators";
+import EmbedPlayer from "@/components/frontend/MovieDetailPlay/EmbedPlayer";
+import CreateRoomDialog from "@/components/watchParty/CreateRoomDialog";
 import HlsPlayerWithFilter from "@/components/frontend/MovieDetailPlay/HlsPlayerWithFilter";
+import { movieImageSources, toMovieImgUrl } from "@/lib/movieImage";
 import MovieImage from "@/components/frontend/MovieImage";
-import { movieImageSources } from "@/lib/movieImage";
+import { vodPlayerUrl } from "@/lib/vodApi";
+import { durationLabel, toMinutes } from "@/lib/movieTime";
 
 /* ══════════════════════════════════════════════
    BACKDROP
@@ -48,13 +52,14 @@ function XemPhimClient() {
     const [loading,      setLoading]      = useState(true);
     const [playerHeight, setPlayerHeight] = useState(0);
     const [epSearch,     setEpSearch]     = useState("");
+    const [showRoom,     setShowRoom]     = useState(false);
     const playerRef    = useRef<HTMLDivElement>(null);
     const sidebarListRef = useRef<HTMLDivElement>(null);
 
     const { slug: _slug }  = useParams();
+    const router           = useRouter();
     const slug             = _slug as string;
     const searchParams     = useSearchParams();
-    const router           = useRouter();
     const { markWatched, isWatched } = useLocalWatched(slug);
 
     const verIndex = Math.max(Number(searchParams.get("ver") ?? 1) - 1, 0);
@@ -135,15 +140,27 @@ function XemPhimClient() {
         </div>
     );
 
-    /* Tập trước/sau cho trình phát (nút ⏮ ⏭, tự chuyển tập khi hết) */
-    const episodeLink = (idx: number) => {
+    /* Có link m3u8 (nguồn phimapi) → trình phát riêng; không có (VodPhim) → trình phát nhúng */
+    const useHls = !!currentEpisode.link_m3u8;
+    /* Trình phát nhúng tự chuyển sang tập sau khi hết (tham số next_ep) */
+    const nextEpisodeId = isSeries ? currentServerData[epIndex + 1]?.episode_id : undefined;
+    const playerSrc = useHls ? "" : vodPlayerUrl(currentEpisode, { nextEpisodeId });
+    /* "60 phút / tập", "120 phút" → giây; không rõ thì bỏ trống */
+    const durationSec = toMinutes(movie.time) * 60 || undefined;
+    /* Link tập trước/sau cho thanh dưới trình phát */
+    const episodeHref = (idx: number) => currentServerData[idx]
+        ? `/xem-phim/${movie.slug}?ver=${verIndex + 1}&ep=${idx + 1}`
+        : null;
+    const prevHref = isSeries ? episodeHref(epIndex - 1) : null;
+    const nextHref = isSeries ? episodeHref(epIndex + 1) : null;
+    /* Tập trước/sau cho trình phát riêng (nút ⏮ ⏭, tự chuyển tập khi hết). null = phim bộ nhưng hết tập; undefined = phim lẻ */
+    const episodeLink = (href: string | null, idx: number) => {
         const ep = currentServerData[idx];
-        if (!ep) return null;
-        const href = `/xem-phim/${movie.slug}?ver=${verIndex + 1}&ep=${idx + 1}`;
+        if (!href || !ep) return null;
         return { label: ep.name ? `Tập ${ep.name.replace(/^tập\s*/i, "")}` : `Tập ${idx + 1}`, onGo: () => router.push(href) };
     };
-    const prevEpisode = isSeries ? episodeLink(epIndex - 1) : undefined;
-    const nextEpisode = isSeries ? episodeLink(epIndex + 1) : undefined;
+    const prevEpisode = isSeries ? episodeLink(prevHref, epIndex - 1) : undefined;
+    const nextEpisode = isSeries ? episodeLink(nextHref, epIndex + 1) : undefined;
     const playerSubtitle = isSeries
         ? (currentEpisode.name ? `Tập ${currentEpisode.name.replace(/^tập\s*/i, "")}` : `Tập ${epIndex + 1}`)
         : (servers[verIndex]?.server_name ?? undefined);
@@ -154,7 +171,7 @@ function XemPhimClient() {
                 title={`${movie.name} (${movie.year}) - Xem phim HD`}
                 description={`Xem ${movie.name} Vietsub HD`}
                 canonical={`https://www.moximovie.click/xem-phim/${movie.slug}`}
-                image={movie.thumb_url}
+                image={toMovieImgUrl(movie.thumb_url) || undefined}
                 type="movie"
                 name={movie.name}
             />
@@ -204,19 +221,39 @@ function XemPhimClient() {
                         <div ref={playerRef} className={isSeries ? "xl:flex-1 min-w-0" : ""}>
                             <div
                                 /* Không overflow-hidden: để ánh Ambient toả ra ngoài; trình phát tự bo góc bên trong */
-                                className="relative w-full rounded-2xl"
+                                className="relative isolate w-full rounded-2xl"
                                 style={{
                                     aspectRatio: "16/9",
                                     boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 24px 80px rgba(0,0,0,0.8), 0 0 60px rgba(34,211,165,0.06)",
                                 }}
                             >
-                                {currentEpisode.link_m3u8 && (
+                                {useHls ? (
+                                    /* Nguồn phimapi: có link m3u8 → trình phát riêng đầy đủ (Ambient, chất lượng, xem tiếp, tập trước/sau) */
                                     <HlsPlayerWithFilter
-                                        src={currentEpisode.link_m3u8}
+                                        src={currentEpisode.link_m3u8!}
                                         poster={movieImageSources(movie, "thumb")[0]}
                                         subtitle={playerSubtitle}
                                         prevEpisode={prevEpisode}
                                         nextEpisode={nextEpisode}
+                                    />
+                                ) : (
+                                    /* Ánh Ambient giả: iframe khác domain không lấy được màu khung hình → dùng ảnh phim làm mờ toả ra quanh khung */
+                                    <div aria-hidden className="ambient-glow absolute -inset-[5%] -z-10 pointer-events-none">
+                                        <MovieImage
+                                            movie={movie} prefer="thumb"
+                                            alt=""
+                                            fill sizes="256px"
+                                            className="object-cover select-none"
+                                            style={{ filter: "blur(56px) saturate(1.5)", opacity: 0.5 }}
+                                        />
+                                    </div>
+                                )}
+                                {!useHls && playerSrc && (
+                                    <EmbedPlayer
+                                        src={playerSrc}
+                                        subtitle={playerSubtitle}
+                                        progressKey={`${movie.slug}:${currentEpisode.episode_id ?? currentEpisode.slug}`}
+                                        durationSec={durationSec}
                                     />
                                 )}
                             </div>
@@ -358,26 +395,74 @@ function XemPhimClient() {
                         )}
                     </div>
 
-                    {/* ── Currently watching label (below the flex row) ── */}
-                    {isSeries && (
-                        <div className="mt-3 flex items-center justify-between px-1">
-                            <div className="flex items-center gap-2.5">
-                                <span className="flex gap-[3px] items-end h-4 shrink-0">
-                                    <span className="w-[3px] rounded-full animate-[soundbar_0.9s_ease-in-out_infinite]" style={{ height: "40%", background: "#22d3a5" }} />
-                                    <span className="w-[3px] rounded-full animate-[soundbar_0.9s_ease-in-out_0.2s_infinite]" style={{ height: "100%", background: "#22d3a5" }} />
-                                    <span className="w-[3px] rounded-full animate-[soundbar_0.9s_ease-in-out_0.4s_infinite]" style={{ height: "65%", background: "#22d3a5" }} />
-                                </span>
-                                <p className="text-sm text-white/50">
-                                    Đang xem:&nbsp;
-                                    <span className="text-white font-semibold">
-                                        {currentEpisode.name ?? `Tập ${epIndex + 1}`}
-                                    </span>
-                                </p>
-                            </div>
-                            <span className="text-[11px] text-white/25 hidden sm:block">
-                                Kéo thanh tiến trình để tua phim
+                    {/* ── Thanh dưới trình phát: đang xem + tập trước/sau (trình phát nhúng không cho gắn nút vào trong) ── */}
+                    <div className="mt-3 flex items-center justify-between gap-3 px-1">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="flex gap-[3px] items-end h-4 shrink-0">
+                                <span className="w-[3px] rounded-full animate-[soundbar_0.9s_ease-in-out_infinite]" style={{ height: "40%", background: "#22d3a5" }} />
+                                <span className="w-[3px] rounded-full animate-[soundbar_0.9s_ease-in-out_0.2s_infinite]" style={{ height: "100%", background: "#22d3a5" }} />
+                                <span className="w-[3px] rounded-full animate-[soundbar_0.9s_ease-in-out_0.4s_infinite]" style={{ height: "65%", background: "#22d3a5" }} />
                             </span>
+                            <p className="text-sm text-white/50 truncate">
+                                Đang xem:&nbsp;
+                                <span className="text-white font-semibold">
+                                    {isSeries ? (currentEpisode.name ? `Tập ${currentEpisode.name.replace(/^tập\s*/i, "")}` : `Tập ${epIndex + 1}`) : movie.name}
+                                </span>
+                                {servers[verIndex]?.server_name && (
+                                    <span className="hidden sm:inline text-white/30">&nbsp;·&nbsp;{servers[verIndex].server_name}</span>
+                                )}
+                            </p>
                         </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            {/* Mở phòng xem chung với phim + tập đang xem */}
+                            <button type="button" onClick={() => setShowRoom(true)} aria-label="Xem chung với bạn bè"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition hover:brightness-125"
+                                style={{ background: "rgba(246,212,107,0.12)", color: "#f6d46b", border: "1px solid rgba(246,212,107,0.3)" }}>
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                                <span>Xem chung</span>
+                            </button>
+                        {isSeries && (
+                            <>
+                                {[
+                                    { href: prevHref, label: "Tập trước", icon: "M11 19l-7-7 7-7M20 19l-7-7 7-7" },
+                                    { href: nextHref, label: "Tập tiếp", icon: "M13 5l7 7-7 7M4 5l7 7-7 7" },
+                                ].map(({ href, label, icon }, i) => {
+                                    const content = (
+                                        <>
+                                            {i === 0 && <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>}
+                                            <span className="hidden sm:inline">{label}</span>
+                                            {i === 1 && <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>}
+                                        </>
+                                    );
+                                    const cls = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition";
+                                    return href ? (
+                                        <Link key={label} href={href} aria-label={label} className={`${cls} hover:brightness-125`}
+                                            style={i === 1
+                                                ? { background: "rgba(34,211,165,0.14)", color: "#22d3a5", border: "1px solid rgba(34,211,165,0.35)" }
+                                                : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                                            {content}
+                                        </Link>
+                                    ) : (
+                                        <span key={label} aria-disabled className={`${cls} cursor-not-allowed`}
+                                            style={{ background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                                            {content}
+                                        </span>
+                                    );
+                                })}
+                            </>
+                        )}
+                        </div>
+                    </div>
+
+                    {showRoom && (
+                        <CreateRoomDialog
+                            slug={movie.slug}
+                            movieName={movie.name}
+                            ver={verIndex}
+                            ep={isSeries ? epIndex : 0}
+                            onClose={() => setShowRoom(false)}
+                        />
                     )}
 
                     {/* ── MOBILE/TABLET episode list ── */}
@@ -503,11 +588,11 @@ function XemPhimClient() {
                                         </span>
                                     )}
                                     {movie.year && <span className="tag-badge px-2 py-0.5 text-[11px] rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }}>{movie.year}</span>}
-                                    {movie.time > 0 && <span className="tag-badge px-2 py-0.5 text-[11px] rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }}>{movie.time} phút</span>}
+                                    {durationLabel(movie.time) && <span className="tag-badge px-2 py-0.5 text-[11px] rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }}>{durationLabel(movie.time)}</span>}
                                     {movie.lang && <span className="tag-badge px-2 py-0.5 text-[11px] rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }}>{movie.lang}</span>}
                                     {isSeries && movie.episode_current && (
                                         <span className="tag-badge px-2 py-0.5 text-[11px] rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.45)" }}>
-                                            {movie.episode_current}{movie.episode_total ? ` / ${movie.episode_total}` : ""}
+                                            {movie.episode_current}{movie.episode_total && !movie.episode_current.includes("/") ? ` / ${movie.episode_total}` : ""}
                                         </span>
                                     )}
                                 </div>

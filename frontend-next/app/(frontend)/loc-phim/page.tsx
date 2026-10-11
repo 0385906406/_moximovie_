@@ -84,7 +84,8 @@ function LocPhimPage() {
     const country     = searchParams.get("country") || "";
     const category    = searchParams.get("category") || "";
     const year        = searchParams.get("year") || "";
-    const sort_lang   = searchParams.get("sort_lang") || "";
+    /* Bộ lọc gửi "versions" (vietsub, thuyet-minh...), link cũ dùng "sort_lang". Chỉ nguồn phimapi lọc được */
+    const sort_lang   = searchParams.get("versions") || searchParams.get("sort_lang") || "";
 
     /* ── Fetch ── */
     const fetchMovies = useCallback(async () => {
@@ -129,7 +130,7 @@ function LocPhimPage() {
     if (country)   activeFilters.push({ key: "country",   label: `🌏 ${country}` });
     if (category)  activeFilters.push({ key: "category",  label: `🎭 ${category}` });
     if (year)      activeFilters.push({ key: "year",       label: `📅 ${year}` });
-    if (sort_lang) activeFilters.push({ key: "sort_lang",  label: `🔤 ${sort_lang}` });
+    if (sort_lang) activeFilters.push({ key: searchParams.get("versions") ? "versions" : "sort_lang", label: `🔤 ${sort_lang}` });
 
     const pageTitle = TYPE_LABELS[type_list] ?? "Lọc Phim";
 
