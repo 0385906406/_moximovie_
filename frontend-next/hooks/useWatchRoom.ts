@@ -112,12 +112,21 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
             /* Mỗi lần cần token (lúc đầu và khi gia hạn), server kiểm tra lại quyền: chủ phòng / thành viên / đang chờ */
             authCallback: async (_params, cb) => {
                 try {
-                    const res = await fetch("/api/rooms/token", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ code, secret, ticket: store.get(ticketKey(code)) }),
-                    });
-                    const j = await res.json();
+                    let res: Response, j: { code?: string; error?: string; role: Role; clientId: string; tokenRequest: Ably.TokenRequest };
+                    for (let attempt = 0; ; attempt++) {
+                        res = await fetch("/api/rooms/token", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ code, secret, ticket: store.get(ticketKey(code)) }),
+                        });
+                        j = await res.json();
+                        /* Mở link đúng lúc chủ phòng vừa tạo phòng / đang tải lại trang (chưa kết nối xong) → chờ thêm ~10 giây */
+                        if (!res.ok && j.code === "not-found" && statusRef.current === "connecting" && attempt < 5 && !disposed) {
+                            await new Promise(r => setTimeout(r, 2000));
+                            continue;
+                        }
+                        break;
+                    }
                     /* Đang ở trong phòng mà chủ phòng tạm mất kết nối lúc gia hạn token → báo lỗi tạm,
                        Ably tự thử lại sau; không đẩy người xem ra khỏi phòng */
                     if (!res.ok && j.code === "not-found" && statusRef.current === "joined") {
@@ -369,6 +378,11 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
                     if (!disposed) setStatus("joined");
                 } else {
                     await refreshHost();
+                    /* Token đã có nhưng presence của chủ phòng có thể đến trễ một chút */
+                    for (let i = 0; i < 5 && !roomRef.current && !disposed; i++) {
+                        await new Promise(r => setTimeout(r, 2000));
+                        await refreshHost();
+                    }
                     if (!roomRef.current) {
                         setStatus("not-found");
                         setError("Phòng không tồn tại hoặc chủ phòng đã rời đi");
