@@ -13,6 +13,9 @@ interface MovieActionsRowProps {
 
     // xử lý hành động
     onPlayFirstEpisode?: () => void;
+
+    // Đang xem dở phim này (hàng "Xem tiếp") → đổi chữ nút, vd. "Xem tiếp · Tập 3 · 12:34"
+    playLabel?: string;
     // onToggleFavorite: () => void;
     // onTogglePlaylistPopup: () => void;
     // onCreatePlaylistClick: () => void;
@@ -35,6 +38,7 @@ const MovieActionsRow: React.FC<MovieActionsRowProps> = ({
     firstEpisode,
     rating,
     onPlayFirstEpisode,
+    playLabel,
     // onToggleFavorite,
     // onTogglePlaylistPopup,
     // onCreatePlaylistClick,
@@ -53,7 +57,7 @@ const MovieActionsRow: React.FC<MovieActionsRowProps> = ({
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-black font-semibold bg-linear-to-r from-green-200 to-green-600 shadow hover:brightness-110 transition"
                 >
                     <Play className="w-5 h-5" />
-                    <span>Xem</span>
+                    <span>{playLabel ?? "Xem"}</span>
                 </button>
             )}
 

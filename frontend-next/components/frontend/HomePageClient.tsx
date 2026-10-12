@@ -7,12 +7,11 @@ import "@/components/frontend/Home/home-fx.css";
 import HomeFx, { HomeAmbient } from "@/components/frontend/Home/HomeFx";
 import MobileTabBar from "@/components/frontend/MobileTabBar";
 import type { Movie } from "@/types/movie";
-import type { MovieSource } from "@/lib/movieSource";
 
 import Slider from "@/components/frontend/Slider";
 import KoreanMoviesSection from "@/components/frontend/Home/KoreanMoviesSection";
 import ChinaMoviesSection from "@/components/frontend/Home/ChinaMoviesSection";
-import VietNamMoviesSection from "@/components/frontend/Home/VietNamMoviesSection";
+import ContinueWatchingSection from "@/components/frontend/Home/ContinueWatchingSection";
 import WibuMoviesSection from "@/components/frontend/Home/WibuMoviesSection";
 
 const CommingMoviesSection         = lazy(() => import("@/components/frontend/Home/CommingMoviesSection"));
@@ -181,10 +180,7 @@ export interface HomeInitialData {
     slider:  Movie[];
     korean:  Movie[];
     china:   Movie[];
-    vietnam: Movie[];
     wibu:    Movie[];
-    /* Nguồn phim của trang (render trên server) */
-    source?: MovieSource;
 }
 
 /* ── Main client page ── */
@@ -229,17 +225,14 @@ export default function HomePageClient({ initialData }: { initialData: HomeIniti
                     <RevealSection delay={80}>
                         <ChinaMoviesSection initialData={initialData.china} />
                     </RevealSection>
-                    {/* Máy chủ quốc tế chưa có phim Việt Nam → ẩn mục này. Máy chủ trong nước luôn hiện (lỗi thì mục tự tải lại) */}
-                    {(initialData.source !== "vodphim" || initialData.vietnam.length > 0) && (
-                        <RevealSection delay={160}>
-                            <VietNamMoviesSection initialData={initialData.vietnam} />
-                        </RevealSection>
-                    )}
-                    <RevealSection delay={240}>
+                    <RevealSection delay={160}>
                         <WibuMoviesSection initialData={initialData.wibu} />
                     </RevealSection>
                 </div>
             </div>
+
+            {/* ── Xem tiếp (phim đang xem dở trên máy này) — ngay dưới mục Anime ── */}
+            <ContinueWatchingSection />
 
             {/* ── Below fold: load sớm, reveal khi scroll đến ── */}
             <LazySection loadMargin="600px" prefetch><CommingMoviesSection /></LazySection>

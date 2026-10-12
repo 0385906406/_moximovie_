@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
         imageSizes: [96, 128, 256, 384],
         qualities: [70, 75, 80],
     },
+    /* Sitemap cũ (file tĩnh) đã thay bằng sitemap tự động → chuyển hướng để Google Search Console vẫn đọc được */
+    async redirects() {
+        return [{ source: "/site_map.xml", destination: "/sitemap.xml", permanent: true }];
+    },
 };
 
 export default nextConfig;

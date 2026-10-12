@@ -85,7 +85,8 @@ export default function RoomsHome() {
                                     <MovieImage movie={{ poster_url: r.poster }} prefer="poster" alt="" fill sizes="96px" className="object-cover" />
                                 </span>
                                 <span className="min-w-0 text-[12.5px] text-white/50">
-                                    <span className="block text-[14px] text-white font-medium truncate">{r.movieName}</span>
+                                    <span className="block text-[14px] text-white font-medium truncate">{r.roomName || r.movieName}</span>
+                                    {r.roomName && <span className="block truncate">{r.movieName}</span>}
                                     <span className="font-mono tracking-[0.15em] text-white/70">{r.code}</span>
                                     {r.host && <span className="ml-2 text-[#f6d46b]">· bạn là chủ phòng</span>}
                                     <span className="block">{new Date(r.at).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}</span>

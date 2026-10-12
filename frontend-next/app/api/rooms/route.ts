@@ -3,7 +3,7 @@ import { movieApi } from "@/lib/movieApi";
 import { parseSource } from "@/lib/movieSource";
 import { toMovieImgUrl } from "@/lib/movieImage";
 import { ablyRest, clientIdFromSecret, errorResponse, getHost, hostTicket, randomCode, RoomError } from "@/lib/watchParty/server";
-import { MAX_NAME, type RoomState } from "@/lib/watchParty/types";
+import { MAX_NAME, MAX_ROOM_NAME, type RoomState } from "@/lib/watchParty/types";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
         if (!source || !slug) throw new RoomError(400, "Thiếu thông tin phim");
         const hostName = String(body.name ?? "").trim().slice(0, MAX_NAME);
         if (!hostName) throw new RoomError(400, "Hãy nhập tên hiển thị");
+        const roomName = String(body.roomName ?? "").trim().slice(0, MAX_ROOM_NAME) || `Phòng của ${hostName}`;
 
         const { movie, episodes } = await movieApi(source).detail(slug, { signal: AbortSignal.timeout(8000) });
         if (!movie) throw new RoomError(404, "Không tìm thấy phim");
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
 
         const state: RoomState = {
             v: 1,
+            roomName,
             source,
             slug: movie.slug ?? slug,
             movieName: movie.name ?? slug,

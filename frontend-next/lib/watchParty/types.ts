@@ -17,6 +17,7 @@ export const ROOM_CODE_RE = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LEN
 
 export const MAX_MEMBERS = 30;
 export const MAX_NAME = 24;
+export const MAX_ROOM_NAME = 40;
 export const MAX_CHAT = 300;
 
 export const channelName = (code: string, kind: "control" | "chat" | "lobby") => `room:${code}:${kind}`;
@@ -28,6 +29,8 @@ export function normalizeRoomCode(input: string) {
 /* Trạng thái phòng — presence data của chủ phòng trên kênh control */
 export interface RoomState {
     v: 1;
+    /* Tên phòng do chủ phòng đặt (khác tên hiển thị của từng người). Phòng cũ chưa có → dùng roomTitle() */
+    roomName?: string;
     source: MovieSource;
     slug: string;
     movieName: string;
@@ -98,6 +101,11 @@ export interface ControlRequest {
 }
 
 export const REACTIONS = ["😂", "😍", "😱", "😭", "👏", "🔥", "💀", "❤️"] as const;
+
+/* Tên phòng để hiển thị: tên chủ phòng đặt, chưa đặt thì "Phòng của <chủ phòng>" */
+export function roomTitle(s: { roomName?: string; hostName?: string } | null | undefined) {
+    return s?.roomName?.trim() || (s?.hostName ? `Phòng của ${s.hostName}` : "Phòng xem chung");
+}
 
 /* Màu avatar theo tên, ổn định giữa các máy */
 export function colorFor(text: string) {

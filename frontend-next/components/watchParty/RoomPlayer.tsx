@@ -8,6 +8,7 @@ import RoomEmbedPlayer from "./RoomEmbedPlayer";
 import { useVideoSync, type SyncStatus } from "@/hooks/useVideoSync";
 import { vodPlayerUrl } from "@/lib/vodApi";
 import { movieImageSources } from "@/lib/movieImage";
+import { serverTone } from "@/lib/serverTone";
 import type { WatchRoom } from "@/hooks/useWatchRoom";
 import type { Movie } from "@/types/movie";
 import type { Server } from "@/types/server";
@@ -20,6 +21,8 @@ interface Props {
     servers: Server[];
     videoRef: MutableRefObject<HTMLVideoElement | null>;
     reactions: FloatingReaction[];
+    /* Phòng nguồn VodPhim: bản cùng phim trên phimapi (có m3u8) để đồng bộ được vị trí xem */
+    mirrorServers?: Server[] | null;
 }
 
 const STATUS_TEXT: Record<SyncStatus, string> = {
@@ -34,13 +37,43 @@ const STATUS_TEXT: Record<SyncStatus, string> = {
 export const episodeLabel = (name: string | undefined, idx: number) =>
     name ? (/^full$/i.test(name) ? "Full" : `Tập ${name.replace(/^tập\s*/i, "")}`) : `Tập ${idx + 1}`;
 
-export default function RoomPlayer({ room, movie, servers, videoRef, reactions }: Props) {
+/* "Tập 03" / "3" → 3; "Full" → 1 */
+function episodeNumber(name?: string) {
+    if (!name || /^full$/i.test(name.trim())) return 1;
+    return Number(name.match(/\d+/)?.[0] ?? NaN);
+}
+
+/* Tập tương ứng trên bản phimapi: cùng loại server (Vietsub/Thuyết minh/Lồng tiếng) nếu có, cùng số tập */
+function mirrorEpisode(mirror: Server[] | null | undefined, serverName: string | undefined, epName: string | undefined) {
+    if (!mirror?.length) return null;
+    const label = serverTone(serverName).label;
+    const ordered = [...mirror].sort((a, b) => Number(serverTone(b.server_name).label === label) - Number(serverTone(a.server_name).label === label));
+    const num = episodeNumber(epName);
+    for (const s of ordered) {
+        const list = s.server_data ?? [];
+        const found = list.length === 1 && num === 1 ? list[0] : list.find(e => episodeNumber(e.name) === num);
+        if (found?.link_m3u8) return found;
+    }
+    return null;
+}
+
+export default function RoomPlayer({ room, movie, servers, videoRef, reactions, mirrorServers }: Props) {
     const r = room.room;
     const ver = Math.min(r?.ver ?? 0, Math.max(servers.length - 1, 0));
     const list = servers[ver]?.server_data ?? [];
     const ep = Math.min(r?.ep ?? 0, Math.max(list.length - 1, 0));
     const episode = list[ep];
-    const useHls = !!episode?.link_m3u8;
+    /* Nguồn có m3u8 sẵn → dùng luôn; nguồn VodPhim → thử bản phimapi; máy này không tải được bản đó → trình phát nhúng */
+    const [mirrorFailed, setMirrorFailed] = useState(false);
+    const mirrorEp = episode?.link_m3u8 ? null : mirrorEpisode(mirrorServers, servers[ver]?.server_name, episode?.name);
+    const hlsSrc = episode?.link_m3u8 || (!mirrorFailed && mirrorEp?.link_m3u8) || "";
+    const useHls = !!hlsSrc;
+    const usingMirror = useHls && !episode?.link_m3u8;
+    const onFatalError = useCallback(() => {
+        if (!usingMirror) return;
+        setMirrorFailed(true);
+        toast.info("Máy bạn không tải được trình phát đồng bộ, chuyển sang trình phát nhúng");
+    }, [usingMirror]);
     const subtitle = list.length > 1 ? episodeLabel(episode?.name, ep) : servers[ver]?.server_name;
 
     const [video, setVideo] = useVideoState(videoRef);
@@ -58,7 +91,7 @@ export default function RoomPlayer({ room, movie, servers, videoRef, reactions }
         toast.success("Đã gửi yêu cầu tới chủ phòng");
     }, []);
 
-    const status = useVideoSync({ video: useHls ? video : null, room, onRightEpisode: true, onBlocked, onRequestSent });
+    const { status, drift, resync } = useVideoSync({ video: useHls ? video : null, room, onRightEpisode: true, onBlocked, onRequestSent });
 
     /* Chủ phòng: hết tập → tự sang tập sau cho cả phòng */
     useEffect(() => {
@@ -96,7 +129,8 @@ export default function RoomPlayer({ room, movie, servers, videoRef, reactions }
             {useHls ? (
                 <HlsPlayerWithFilter
                     key={`${ver}-${ep}`}
-                    src={episode.link_m3u8!}
+                    src={hlsSrc}
+                    onFatalError={onFatalError}
                     poster={movieImageSources(movie, "thumb")[0]}
                     subtitle={subtitle}
                     onVideo={setVideo}
@@ -133,11 +167,23 @@ export default function RoomPlayer({ room, movie, servers, videoRef, reactions }
                         {room.isHost
                             ? (room.room?.allowControl ? "Bạn là chủ phòng — mọi người cùng điều khiển được" : "Bạn đang điều khiển phòng — mọi người xem theo bạn")
                             : STATUS_TEXT[status]}
-                        {!room.isHost && room.room?.allowControl && status !== "need-tap" && <span className="text-[#22d3a5]/80">· bạn cũng phát/dừng/tua được</span>}
+                        {!room.isHost && room.room?.allowControl && status !== "need-tap" && <span className="text-[#22d3a5]/80 hidden sm:inline">· bạn cũng phát/dừng/tua được</span>}
+                        {/* Độ lệch với phòng + nút bắt kịp ngay (thành viên) */}
+                        {!room.isHost && drift !== null && (status === "synced" || status === "catching-up") && (
+                            <span className={`tabular-nums ${Math.abs(drift) <= 0.3 ? "text-white/35" : "text-[#f6d46b]"}`}>
+                                · lệch {Math.abs(drift).toFixed(1)} giây
+                            </span>
+                        )}
+                        {!room.isHost && (status === "catching-up" || (drift !== null && Math.abs(drift) > 0.3)) && (
+                            <button type="button" onClick={resync}
+                                className="ml-1 h-7 px-2.5 rounded-lg text-[11.5px] font-semibold bg-[#22d3a5]/15 text-[#22d3a5] border border-[#22d3a5]/30 hover:bg-[#22d3a5]/25">
+                                Đồng bộ ngay
+                            </button>
+                        )}
                     </span>
                 ) : (
                     <span className="text-[12px] text-white/45">
-                        Máy chủ quốc tế dùng trình phát nhúng: chỉ đồng bộ được tập phim và lúc bắt đầu.
+                        Phim này chỉ có trình phát nhúng: chỉ đồng bộ được tập phim và lúc bắt đầu.
                     </span>
                 )}
                 {!useHls && (room.isHost || room.room?.allowControl) && (

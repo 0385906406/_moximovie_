@@ -58,6 +58,13 @@ export async function GET(req: NextRequest) {
         if (!upstream.ok) return fallback(target.href);
 
         const input = Buffer.from(await upstream.arrayBuffer());
+
+        /* og=1: ảnh xem trước khi chia sẻ link (Facebook, Zalo...) — 1200×630 JPG, app nào cũng hiển thị được */
+        if (params.get("og") === "1") {
+            const og = await sharp(input).resize(1200, 630, { fit: "cover", position: "attention" }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+            return new NextResponse(new Uint8Array(og), { headers: { "Content-Type": "image/jpeg", "Cache-Control": CACHE_FOREVER } });
+        }
+
         const output = await sharp(input)
             .resize({ width, withoutEnlargement: true })
             .webp({ quality })

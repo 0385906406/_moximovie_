@@ -19,6 +19,13 @@ export function toMovieImgUrl(path?: string | null) {
     return `https://phimimg.com/${rel}`;
 }
 
+/* Ảnh xem trước khi chia sẻ link: 1200×630 JPG qua /api/img (ảnh gốc thường là webp, Zalo/Facebook cũ không hiện) */
+export const SITE_URL = "https://www.moximovie.click";
+export function shareImageUrl(path?: string | null) {
+    const src = toMovieImgUrl(path);
+    return src ? `${SITE_URL}/api/img?og=1&url=${encodeURIComponent(src)}` : "";
+}
+
 /* Danh sách ảnh theo thứ tự ưu tiên: ảnh muốn dùng trước, ảnh còn lại làm dự phòng */
 export function movieImageSources(movie: MovieImageFields, prefer: MovieImageKind) {
     const poster = toMovieImgUrl(movie.poster_url);

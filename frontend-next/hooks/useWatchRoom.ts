@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Ably from "ably";
 import {
-    channelName, colorFor, MAX_CHAT,
+    channelName, colorFor, MAX_CHAT, MAX_NAME, roomTitle,
     type ChatMessage, type ControlRequest, type MemberData, type PlaybackState, type RoomState,
 } from "@/lib/watchParty/types";
 
@@ -25,14 +25,35 @@ const store = {
     del(k: string) { try { localStorage.removeItem(k); } catch { /* bị chặn */ } },
 };
 
+const SECRET_RE = /^[A-Za-z0-9_-]{32,128}$/;
+function newSecret() {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/* Danh tính lâu dài của trình duyệt (giữ quyền chủ phòng khi tải lại trang) */
 export function getRoomSecret() {
     let s = store.get(SECRET_KEY);
-    if (!s || !/^[A-Za-z0-9_-]{32,128}$/.test(s)) {
-        const bytes = crypto.getRandomValues(new Uint8Array(32));
-        s = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    if (!s || !SECRET_RE.test(s)) {
+        s = newSecret();
         store.set(SECRET_KEY, s);
     }
     return s;
+}
+
+/* Danh tính riêng của 1 tab — dùng khi cùng trình duyệt đã có tab khác đang ở phòng này
+   (không thì 2 tab trùng danh tính, cả 2 cùng là chủ phòng và tranh nhau điều khiển) */
+function getTabSecret() {
+    try {
+        let s = sessionStorage.getItem(SECRET_KEY);
+        if (!s || !SECRET_RE.test(s)) {
+            s = newSecret();
+            sessionStorage.setItem(SECRET_KEY, s);
+        }
+        return s;
+    } catch {
+        return newSecret();
+    }
 }
 export const getSavedName = () => store.get(NAME_KEY) ?? "";
 export const saveName = (name: string) => store.set(NAME_KEY, name);
@@ -41,7 +62,7 @@ export const saveHostTicket = (code: string, ticket: string) => store.set(ticket
 export const saveRoomState = (code: string, state: RoomState) => store.set(`moxi_room_state_${code}`, JSON.stringify(state));
 
 /* Phòng gần đây (trang /phong) */
-export interface RecentRoom { code: string; movieName: string; poster?: string; at: number; host: boolean }
+export interface RecentRoom { code: string; roomName?: string; movieName: string; poster?: string; at: number; host: boolean }
 export function getRecentRooms(): RecentRoom[] {
     try { return JSON.parse(store.get(RECENT_KEY) ?? "[]"); } catch { return []; }
 }
@@ -90,6 +111,7 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
     const optsRef = useRef(opts);
     optsRef.current = opts;
     const meRef = useRef<MemberData | null>(null);
+    const [myName, setMyName] = useState(name ?? "");
 
     /* Giờ máy chủ Ably (ms) — mọi máy dùng chung mốc thời gian này để tính vị trí phát */
     const now = useCallback(() => Date.now() + offsetRef.current, []);
@@ -101,12 +123,33 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
         pushMessage({ id: `sys-${Date.now()}-${Math.random()}`, clientId: "", name: "", color: 0, text, at: Date.now(), system: true });
     }, [pushMessage]);
 
+    /* ── Danh tính cho tab này ──
+       Tab đầu tiên mở phòng giữ khoá Web Lock của phòng → dùng danh tính lâu dài của trình duyệt.
+       Tab thứ 2 trở đi (cùng trình duyệt) không lấy được khoá → dùng danh tính riêng của tab. */
+    const [secret, setSecret] = useState<string | null>(null);
+    const secretRef = useRef("");
+    useEffect(() => {
+        let cancelled = false;
+        let release: (() => void) | null = null;
+        const locks = (navigator as Navigator & { locks?: LockManager }).locks;
+        if (!locks?.request) { setSecret(getRoomSecret()); return; }
+        void locks.request(`moxi-room-${code}`, { ifAvailable: true }, lock => {
+            if (cancelled) return;
+            if (!lock) { setSecret(getTabSecret()); return; }
+            setSecret(getRoomSecret());
+            /* Giữ khoá tới khi rời phòng / đóng tab */
+            return new Promise<void>(resolve => { release = resolve; });
+        }).catch(() => { if (!cancelled) setSecret(getRoomSecret()); });
+        return () => { cancelled = true; release?.(); };
+    }, [code]);
+
     /* ── Kết nối ── */
     useEffect(() => {
-        if (!name) return;
+        if (!name || !secret) return;
         let disposed = false;
-        const secret = getRoomSecret();
+        secretRef.current = secret;
         meRef.current = { name, color: colorFor(name) };
+        setMyName(name);
 
         const realtime = new Ably.Realtime({
             /* Mỗi lần cần token (lúc đầu và khi gia hạn), server kiểm tra lại quyền: chủ phòng / thành viên / đang chờ */
@@ -266,7 +309,14 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
                 if (p.action === "enter" && roleRef.current === "host") void republish();
                 void refreshMembers();
             });
-            chat.presence.subscribe("update", () => void refreshMembers());
+            chat.presence.subscribe("update", p => {
+                const before = membersRef.current.get(p.clientId ?? "")?.name;
+                const after = (p.data as MemberData | undefined)?.name;
+                if (before && after && before !== after) {
+                    systemMessage(p.clientId === realtime.auth.clientId ? `Bạn đã đổi tên thành ${after}` : `${before} đã đổi tên thành ${after}`);
+                }
+                void refreshMembers();
+            });
             await chat.presence.enter(meRef.current);
             await refreshMembers();
         };
@@ -401,7 +451,7 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
                 }
 
                 const st = roomRef.current;
-                if (st) rememberRoom({ code, movieName: st.movieName, poster: st.poster, at: Date.now(), host: roleRef.current === "host" });
+                if (st) rememberRoom({ code, roomName: roomTitle(st), movieName: st.movieName, poster: st.poster, at: Date.now(), host: roleRef.current === "host" });
             } catch (e) {
                 if (disposed) return;
                 setStatus(s => (s === "connecting" ? "error" : s));
@@ -416,7 +466,15 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
             realtime.close();
             ablyRef.current = null;
         };
-    }, [code, name, pushMessage, systemMessage]);
+    }, [code, name, secret, pushMessage, systemMessage]);
+
+    /* Danh sách "phòng gần đây" luôn theo tên phòng / phim mới nhất (chủ phòng đổi tên phòng thì cập nhật theo) */
+    const roomTitleNow = room ? roomTitle(room) : "";
+    useEffect(() => {
+        const r = roomRef.current;
+        if (status !== "joined" || !r) return;
+        rememberRoom({ code, roomName: roomTitle(r), movieName: r.movieName, poster: r.poster, at: Date.now(), host: roleRef.current === "host" });
+    }, [code, status, roomTitleNow, room?.movieName, role]);
 
     /* ── Hành động của chủ phòng ── */
     const control = () => ablyRef.current?.channels.get(channelName(code, "control"));
@@ -473,7 +531,7 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
         const res = await fetch("/api/rooms/transfer", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, secret: getRoomSecret(), ticket: store.get(ticketKey(code)), target }),
+            body: JSON.stringify({ code, secret: secretRef.current, ticket: store.get(ticketKey(code)), target }),
         });
         const j = await res.json();
         if (!res.ok) throw new Error(j.error ?? "Không chuyển được quyền");
@@ -515,6 +573,20 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
     }, [code]);
 
     /* ── Hành động của mọi người ── */
+
+    /* Đổi tên hiển thị ngay trong phòng: cập nhật presence (không kết nối lại), giữ nguyên màu avatar.
+       Chủ phòng đổi tên thì cập nhật luôn tên chủ phòng trong trạng thái phòng. */
+    const rename = useCallback(async (next: string) => {
+        const n = next.trim().slice(0, MAX_NAME);
+        if (n.length < 2 || !meRef.current) return false;
+        if (n === meRef.current.name) return true;
+        meRef.current = { ...meRef.current, name: n };
+        setMyName(n);
+        saveName(n);
+        await chatCh()?.presence.update(meRef.current);
+        if (roleRef.current === "host") await updateRoom({ hostName: n });
+        return true;
+    }, [updateRoom]);
     const lastSent = useRef(0);
     const sendChat = useCallback(async (text: string) => {
         const t = text.trim().slice(0, MAX_CHAT);
@@ -547,10 +619,10 @@ export function useWatchRoom(code: string, name: string | null, opts: Options = 
     );
 
     return {
-        status, error, role, clientId, room, hostId, hostOnline, playback, members: memberList, lobby: lobbyList, messages,
+        status, error, role, clientId, room, hostId, hostOnline, playback, members: memberList, lobby: lobbyList, messages, myName,
         isHost: role === "host",
         now, updateRoom, publishSync, setEpisode, admit, kick, transferHost, closeRoom,
-        sendChat, sendReaction, requestControl,
+        sendChat, sendReaction, requestControl, rename,
     };
 }
 

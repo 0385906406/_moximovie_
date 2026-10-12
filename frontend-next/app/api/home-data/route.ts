@@ -17,15 +17,14 @@ async function fetchPhim(source: MovieSource, query: ListQuery) {
 /* ?source=phimapi|vodphim; bỏ trống → theo cookie/vị trí người xem */
 export async function GET(req: NextRequest) {
     const source = parseSource(req.nextUrl.searchParams.get("source")) ?? await getServerSource();
-    const [slider, korean, china, vietnam, wibu] = await Promise.all([
+    const [slider, korean, china, wibu] = await Promise.all([
         fetchPhim(source, { type: "single", year: 2026 }),
         fetchPhim(source, { type: "tv", country: "han-quoc" }),
         fetchPhim(source, { type: "tv", country: "trung-quoc" }),
-        fetchPhim(source, { type: "tv", country: "viet-nam" }),
         fetchPhim(source, { type: "animation", country: "nhat-ban" }),
     ]);
 
-    return NextResponse.json({ slider, korean, china, vietnam, wibu }, {
+    return NextResponse.json({ slider, korean, china, wibu }, {
         headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" },
     });
 }

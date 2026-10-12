@@ -35,7 +35,10 @@ import MovieImage from "@/components/frontend/MovieImage";
 import MovieTmdbExtras from "@/components/frontend/MovieDetail/MovieTmdbExtras";
 import TrailerModal from "@/components/frontend/MovieDetail/TrailerModal";
 import type { TmdbExtras } from "@/lib/tmdb";
-import { toMovieImgUrl } from "@/lib/movieImage";
+import { shareImageUrl } from "@/lib/movieImage";
+import { getContinueItem, type ContinueItem } from "@/lib/continueWatching";
+import { getClientSource } from "@/lib/movieSource";
+import { AUTOPLAY_FLAG } from "@/components/frontend/MovieDetailPlay/PlayerControls";
 
 // ── helper ──
 // const safeMovieObject = (m: Movie | null) => {
@@ -480,6 +483,17 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
         window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     }, [currentEpisode]);
 
+    /* Đang xem dở phim này trên máy → nút "Xem" thành "Xem tiếp" và mở đúng tập */
+    const [resume, setResume] = useState<ContinueItem | null>(null);
+    useEffect(() => {
+        setResume(movie?.slug ? getContinueItem(getClientSource(), movie.slug) : null);
+    }, [movie?.slug]);
+    const resumeLabel = resume
+        ? resume.nextUp
+            ? `Xem ${resume.epLabel}`
+            : `Xem tiếp${resume.epCount > 1 ? ` · ${resume.epLabel}` : ""} · ${Math.floor(resume.position / 60)}:${String(Math.floor(resume.position % 60)).padStart(2, "0")}`
+        : undefined;
+
     // ── Handlers (giữ nguyên 100%) ──
     const handlePlay = useCallback((ep: Episode, epIndex: number, serverIndex: number) => {
         if (!movie) return;
@@ -652,9 +666,9 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
             {movie && (
                 <SEO
                     title={`${movie.name} (${movie.year}) - Xem ${movie.name} Vietsub HD Online | MoxiMovie`}
-                    description={`Xem phim ${movie.name} (${movie.year}) Vietsub HD 1080p tại MoxiMovie. Thể loại: ${movie.category?.join(", ")}, Đạo diễn: ${movie.director || "Chưa có"}, Diễn viên: ${movie.actor?.slice(0, 5).join(", ")}. Trải nghiệm xem phim mượt mà, cập nhật nhanh, không quảng cáo độc hại.`}
+                    description={`Xem phim ${movie.name} (${movie.year}) Vietsub HD 1080p tại MoxiMovie. Thể loại: ${movie.category?.map(c => c.name).join(", ") || "Đang cập nhật"}. Đạo diễn: ${movie.director?.filter(Boolean).join(", ") || "Đang cập nhật"}. Diễn viên: ${movie.actor?.filter(Boolean).slice(0, 5).join(", ") || "Đang cập nhật"}. Trải nghiệm xem phim mượt mà, cập nhật nhanh, không quảng cáo độc hại.`}
                     canonical={`https://www.moximovie.click/phim/${movie.slug}`}
-                    image={toMovieImgUrl(movie.thumb_url) || "https://www.moximovie.click/default-og.jpg"}
+                    image={shareImageUrl(movie.thumb_url || movie.poster_url) || undefined}
                     type="movie"
                     name={movie.name}
                 />
@@ -835,9 +849,15 @@ export default function PhimDetailClient({ initialData }: { initialData?: PhimDe
                                 <MovieActionsRow
                                     firstEpisode={currentEpisodes[0]}
                                     rating={initialData?.slug === slug ? initialData?.tmdb : null}
-                                    onPlayFirstEpisode={() =>
-                                        currentEpisodes[0] && handlePlay(currentEpisodes[0], 0, currentServerIndex)
-                                    }
+                                    playLabel={resumeLabel}
+                                    onPlayFirstEpisode={() => {
+                                        if (resume && movie) {
+                                            try { sessionStorage.setItem(AUTOPLAY_FLAG, "1"); } catch { /* bị chặn */ }
+                                            router.push(`/xem-phim/${movie.slug}?ver=${resume.ver + 1}&ep=${resume.ep + 1}`);
+                                            return;
+                                        }
+                                        if (currentEpisodes[0]) handlePlay(currentEpisodes[0], 0, currentServerIndex);
+                                    }}
                                     // onToggleFavorite={toggleFavorite}
                                     // onTogglePlaylistPopup={() => {
                                     //     setIsPlaylistPopupOpen((prev) => !prev);

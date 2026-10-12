@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { WatchRoom } from "@/hooks/useWatchRoom";
+import { MAX_ROOM_NAME, roomTitle } from "@/lib/watchParty/types";
 
 export function roomLink(code: string) {
     return `${window.location.origin}/phong/${code}`;
@@ -57,7 +58,7 @@ export default function RoomSettings({ room, code }: { room: WatchRoom; code: st
     if (!room.isHost) {
         return (
             <div className="h-full overflow-y-auto px-4 py-4 flex flex-col gap-3 text-[13px] text-white/60 leading-relaxed">
-                <p>Chủ phòng <b className="text-white">{r.hostName}</b> điều khiển việc phát phim và đổi tập.</p>
+                <p>Bạn đang ở phòng <b className="text-white">{roomTitle(r)}</b> của chủ phòng <b className="text-white">{r.hostName}</b>. Chủ phòng chọn tập và quản lý phòng.</p>
                 <p>{r.allowControl
                     ? "Bạn được bấm phát/dừng/tua — yêu cầu sẽ được gửi tới chủ phòng và áp dụng cho cả phòng."
                     : "Bạn chỉ xem; nếu tự bấm dừng hay tua, trình phát sẽ tự quay về đúng vị trí của phòng."}</p>
@@ -68,6 +69,7 @@ export default function RoomSettings({ room, code }: { room: WatchRoom; code: st
 
     return (
         <div className="h-full overflow-y-auto px-4 py-4 flex flex-col gap-4">
+            <RoomNameField room={room} />
             <Toggle
                 label="Duyệt người vào phòng"
                 desc="Người có mã/link phải chờ bạn bấm duyệt mới được vào."
@@ -104,6 +106,36 @@ export default function RoomSettings({ room, code }: { room: WatchRoom; code: st
                 )}
             </div>
         </div>
+    );
+}
+
+/* Tên phòng (khác tên hiển thị của từng người) — chủ phòng sửa, cả phòng thấy ngay */
+function RoomNameField({ room }: { room: WatchRoom }) {
+    const current = roomTitle(room.room);
+    const [value, setValue] = useState(current);
+    const [saving, setSaving] = useState(false);
+    const dirty = value.trim() !== current;
+
+    const save = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const n = value.trim().slice(0, MAX_ROOM_NAME);
+        if (n.length < 2) { toast.error("Tên phòng cần ít nhất 2 ký tự"); return; }
+        setSaving(true);
+        try { await room.updateRoom({ roomName: n }); toast.success("Đã đổi tên phòng"); }
+        finally { setSaving(false); }
+    };
+
+    return (
+        <form onSubmit={save} className="flex flex-col gap-1.5">
+            <label htmlFor="wp-room-name" className="text-[13.5px] font-medium text-white">Tên phòng</label>
+            <div className="flex gap-2">
+                <input id="wp-room-name" value={value} onChange={e => setValue(e.target.value)} maxLength={MAX_ROOM_NAME}
+                    className="flex-1 min-w-0 h-9 px-3 rounded-xl text-[13px] text-white bg-white/[0.05] border border-white/10 outline-none focus:border-[#22d3a5]/60" />
+                <button type="submit" disabled={!dirty || saving}
+                    className="h-9 px-3 rounded-xl text-[12.5px] font-semibold bg-[#22d3a5] text-[#041a11] disabled:opacity-30 hover:brightness-110">Lưu</button>
+            </div>
+            <span className="text-[12px] text-white/40">Tên chung của phòng. Tên hiển thị của bạn đổi ở dưới cùng bảng này.</span>
+        </form>
     );
 }
 

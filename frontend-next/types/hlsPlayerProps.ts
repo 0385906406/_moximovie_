@@ -17,4 +17,6 @@ export interface HlsPlayerProps {
     syncMode?: boolean;
     /* Tự mở rèm và phát khi tải xong (trình duyệt cho phép vì người xem đã tương tác với trang) */
     autoStart?: boolean;
+    /* Không phát được (tải playlist lỗi, lỗi giải mã...) — phòng xem chung dùng để chuyển sang trình phát nhúng */
+    onFatalError?: (message: string) => void;
 }

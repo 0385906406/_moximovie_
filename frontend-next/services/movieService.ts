@@ -52,7 +52,6 @@ export const movieService = {
 
     dataKoreanMovies:   () => section("korean",   { type: "tv", country: "han-quoc" }),
     dataChinaMovies:    () => section("china",    { type: "tv", country: "trung-quoc" }),
-    dataVietNamMovies:  () => section("vietnam",  { type: "tv", country: "viet-nam" }),
     dataJapanMovies:    () => section("japan",    { type: "tv", country: "nhat-ban" }),
     dataThaiLandMovies: () => section("thailand", { type: "tv", country: "thai-lan" }),
     dataHongKongMovies: () => section("hongkong", { type: "tv", country: "hong-kong" }),

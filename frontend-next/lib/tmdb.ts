@@ -113,3 +113,46 @@ export async function getTmdbExtras(tmdb?: { id?: string | number; type?: string
         return null;
     }
 }
+
+/* ── Thông tin cơ bản 1 phim lẻ trên TMDB (trang /phim-rap/[id]: phim đang chiếu rạp / sắp chiếu) ── */
+export interface TmdbMovieBasic {
+    id: number;
+    title: string;
+    originalTitle: string;
+    overview: string;
+    poster: string | null;
+    backdrop: string | null;
+    releaseDate: string;
+    genres: string[];
+}
+
+export async function getTmdbMovieBasic(id: number): Promise<TmdbMovieBasic | null> {
+    if (!TMDB_KEY || !id) return null;
+    try {
+        const res = await fetch(`${TMDB_API}/movie/${id}?api_key=${TMDB_KEY}&language=vi-VN`, {
+            next: { revalidate: 86400 },
+            signal: AbortSignal.timeout(6000),
+        });
+        if (!res.ok) return null;
+        const j = await res.json();
+        /* Chưa có mô tả tiếng Việt → lấy bản tiếng Anh */
+        let overview: string = j.overview ?? "";
+        if (!overview) {
+            const en = await fetch(`${TMDB_API}/movie/${id}?api_key=${TMDB_KEY}&language=en-US`, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(6000) })
+                .then(r => (r.ok ? r.json() : null)).catch(() => null);
+            overview = en?.overview ?? "";
+        }
+        return {
+            id: j.id,
+            title: j.title || j.original_title || "",
+            originalTitle: j.original_title || "",
+            overview,
+            poster: j.poster_path ?? null,
+            backdrop: j.backdrop_path ?? null,
+            releaseDate: j.release_date ?? "",
+            genres: (j.genres ?? []).map((g: { name: string }) => g.name),
+        };
+    } catch {
+        return null;
+    }
+}

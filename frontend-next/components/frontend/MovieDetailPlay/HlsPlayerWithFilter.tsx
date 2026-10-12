@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import type { Segment } from "@/types/segment";
+import { stripAds } from "@/lib/hlsAdFilter";
 import type { HlsPlayerProps } from "@/types/hlsPlayerProps";
 import PlayerControls, { AUTOPLAY_FLAG } from "./PlayerControls";
 import PlayerCurtain, { CURTAIN_OPEN_MS } from "./PlayerCurtain";
@@ -20,7 +20,7 @@ interface VariantLevel {
 /* ══════════════════════════════════════════════
    COMPONENT
 ══════════════════════════════════════════════ */
-const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, subtitle, prevEpisode, nextEpisode, onVideo, syncMode, autoStart: autoStartProp }) => {
+const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, subtitle, prevEpisode, nextEpisode, onVideo, syncMode, autoStart: autoStartProp, onFatalError }) => {
     const videoRef   = useRef<HTMLVideoElement | null>(null);
     const hlsRef     = useRef<Hls | null>(null);
     const blobUrlRef = useRef<string | null>(null);
@@ -50,6 +50,9 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
         setCurtain("closed");
     }, []);
     useEffect(() => () => clearTimeout(curtainTimer.current), []);
+
+    /* Báo lỗi không phát được ra ngoài (phòng xem chung chuyển trình phát dự phòng) */
+    useEffect(() => { if (error) onFatalError?.(error); }, [error, onFatalError]);
 
     /* Phòng xem chung lấy thẻ video để đồng bộ */
     useEffect(() => {
@@ -114,9 +117,8 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
     const [selectedVariant, setSelectedVariant] = useState<number>(0);
     const [variantUrl,      setVariantUrl]      = useState<string>("");
 
-    /* Playlist state */
-    const [originalPlaylist, setOriginalPlaylist] = useState<string>("");
-    const [filteredSegments, setFilteredSegments] = useState<Segment[]>([]);
+    /* Playlist đã bỏ quảng cáo chèn giữa phim (lib/hlsAdFilter.ts) */
+    const [cleanPlaylist, setCleanPlaylist] = useState<string>("");
 
     /* ──────────────────────────────────────────
        Effect A: src changes → fetch master, detect variants
@@ -130,8 +132,7 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
         setVariantLevels([]);
         setSelectedVariant(0);
         setVariantUrl("");
-        setOriginalPlaylist("");
-        setFilteredSegments([]);
+        setCleanPlaylist("");
 
         let canceled = false;
         const load = async () => {
@@ -164,8 +165,7 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
         let canceled = false;
         setLoading(true);
         setError(null);
-        setOriginalPlaylist("");
-        setFilteredSegments([]);
+        setCleanPlaylist("");
 
         const load = async () => {
             try {
@@ -183,10 +183,9 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
                     }
                 }
 
-                setOriginalPlaylist(text);
-                const parsed   = parseSegments(text, url);
-                const filtered = parsed.filter(seg => !seg.uri.includes("/adjump/"));
-                setFilteredSegments(filtered);
+                const { playlist, segmentCount } = stripAds(text, url);
+                if (!segmentCount) throw new Error("Tập phim này hiện không xem được");
+                setCleanPlaylist(playlist);
             } catch (err: unknown) {
                 if (!canceled) setError((err as Error)?.message ?? "Tải playlist thất bại");
             } finally {
@@ -223,9 +222,9 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
        Effect C: build filtered HLS blob + attach player
     ────────────────────────────────────────── */
     useEffect(() => {
-        if (!videoRef.current || !originalPlaylist || filteredSegments.length === 0) return;
+        if (!videoRef.current || !cleanPlaylist) return;
 
-        const filteredText = buildFilteredPlaylist(originalPlaylist, filteredSegments);
+        const filteredText = cleanPlaylist;
         const blob    = new Blob([filteredText], { type: "application/vnd.apple.mpegurl" });
         const blobUrl = URL.createObjectURL(blob);
         blobUrlRef.current = blobUrl;
@@ -240,8 +239,9 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
                 openCurtain();
                 video.play().catch(() => { setOverlayHidden(false); closeCurtain(); });
             }
-            /* Phòng xem chung: vị trí do chủ phòng quyết định, không dùng vị trí xem dở của máy này */
-            if (syncMode) return;
+            /* Phòng xem chung: vị trí do phòng quyết định, không dùng vị trí xem dở của máy này —
+               trừ khi vừa đổi chất lượng (giữ đúng chỗ đang xem, không thì cả phòng nhảy về đầu phim) */
+            if (syncMode && !switchingQuality.current) return;
             const saved = localStorage.getItem(PROG_KEY);
             if (!saved || !video) return;
             const t = parseFloat(saved);
@@ -277,7 +277,7 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
             if (hlsRef.current)     { hlsRef.current.destroy();               hlsRef.current     = null; }
             if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
         };
-    }, [originalPlaylist, filteredSegments, src]);
+    }, [cleanPlaylist, src]);
 
     /* ── Quality change ── */
     const handleQualityChange = useCallback((idx: number) => {
@@ -392,9 +392,13 @@ const HlsPlayerWithFilter: React.FC<HlsPlayerProps> = ({ src, poster, title, sub
 /* ══════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════ */
+/* Link phim hỏng (nguồn trả 404 → trình duyệt báo lỗi CORS / "Failed to fetch") → báo dễ hiểu cho người xem */
+const SOURCE_BROKEN = "Tập phim này hiện không tải được từ nguồn. Thử server khác, hoặc đổi máy chủ ở nút ⚙ góc dưới.";
+
 async function fetchText(url: string): Promise<string> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let res: Response;
+    try { res = await fetch(url); } catch { throw new Error(SOURCE_BROKEN); }
+    if (!res.ok) throw new Error(SOURCE_BROKEN);
     return res.text();
 }
 
@@ -436,32 +440,6 @@ function getFirstVariantUri(text: string): string | null {
 function toAbsoluteUrl(uri: string, base: string): string {
     if (!uri || /^https?:\/\//i.test(uri)) return uri;
     return new URL(uri, base).toString();
-}
-
-function parseSegments(text: string, playlistUrl: string): Segment[] {
-    const lines = text.split("\n");
-    const segs: Segment[] = [];
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line.startsWith("#EXTINF:")) continue;
-        const duration = parseFloat(line.split(":")[1].split(",")[0]);
-        const rawUri   = lines[i + 1]?.trim() || "";
-        if (rawUri && !rawUri.startsWith("#")) {
-            const uri = toAbsoluteUrl(rawUri, playlistUrl);
-            segs.push({ duration, uri, isAd: uri.includes("/adjump/") });
-        }
-    }
-    return segs;
-}
-
-function buildFilteredPlaylist(original: string, segs: Segment[]): string {
-    const headers = original.split("\n")
-        .map(l => l.trim())
-        .filter(l => l && l.startsWith("#") && !l.startsWith("#EXTINF:") && !l.startsWith("#EXT-X-ENDLIST"));
-    const result = [...headers];
-    for (const s of segs) { result.push(`#EXTINF:${s.duration},`); result.push(s.uri); }
-    result.push("#EXT-X-ENDLIST");
-    return result.join("\n") + "\n";
 }
 
 export default HlsPlayerWithFilter;

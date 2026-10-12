@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useLocalWatched } from "@/hooks/useLocalWatched";
+import { useContinueRecorder } from "@/hooks/useContinueRecorder";
 
 import type { Movie }   from "@/types/movie";
 import type { Episode } from "@/types/episode";
@@ -17,7 +18,7 @@ import { ThreeDot }       from "react-loading-indicators";
 import EmbedPlayer from "@/components/frontend/MovieDetailPlay/EmbedPlayer";
 import CreateRoomDialog from "@/components/watchParty/CreateRoomDialog";
 import HlsPlayerWithFilter from "@/components/frontend/MovieDetailPlay/HlsPlayerWithFilter";
-import { movieImageSources, toMovieImgUrl } from "@/lib/movieImage";
+import { movieImageSources, shareImageUrl } from "@/lib/movieImage";
 import MovieImage from "@/components/frontend/MovieImage";
 import { vodPlayerUrl } from "@/lib/vodApi";
 import { durationLabel, toMinutes } from "@/lib/movieTime";
@@ -53,6 +54,8 @@ function XemPhimClient() {
     const [playerHeight, setPlayerHeight] = useState(0);
     const [epSearch,     setEpSearch]     = useState("");
     const [showRoom,     setShowRoom]     = useState(false);
+    /* Thẻ video của trình phát riêng (để ghi "Xem tiếp") */
+    const [video,        setVideo]        = useState<HTMLVideoElement | null>(null);
     const playerRef    = useRef<HTMLDivElement>(null);
     const sidebarListRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +70,13 @@ function XemPhimClient() {
 
     const isSeries         = movie?.type === "series" || movie?.movie === "series" || Number(movie?.episode_total) > 1;
     const currentServerData = servers[verIndex]?.server_data ?? [];
+
+    /* Ghi "Xem tiếp" (hàng ở trang chủ): trình phát riêng đọc vị trí thật, trình phát nhúng dùng vị trí ước lượng */
+    useContinueRecorder({
+        movie, servers, ver: verIndex, ep: isSeries ? epIndex : 0,
+        video: currentEpisode?.link_m3u8 ? video : null,
+        embedKey: movie && currentEpisode && !currentEpisode.link_m3u8 ? `${movie.slug}:${currentEpisode.episode_id ?? currentEpisode.slug}` : null,
+    });
 
     useEffect(() => { setEpSearch(""); }, [slug, verIndex]);
     useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [slug, currentEpisode]);
@@ -171,7 +181,7 @@ function XemPhimClient() {
                 title={`${movie.name} (${movie.year}) - Xem phim HD`}
                 description={`Xem ${movie.name} Vietsub HD`}
                 canonical={`https://www.moximovie.click/xem-phim/${movie.slug}`}
-                image={toMovieImgUrl(movie.thumb_url) || undefined}
+                image={shareImageUrl(movie.thumb_url || movie.poster_url) || undefined}
                 type="movie"
                 name={movie.name}
             />
@@ -235,6 +245,7 @@ function XemPhimClient() {
                                         subtitle={playerSubtitle}
                                         prevEpisode={prevEpisode}
                                         nextEpisode={nextEpisode}
+                                        onVideo={setVideo}
                                     />
                                 ) : (
                                     /* Ánh Ambient giả: iframe khác domain không lấy được màu khung hình → dùng ảnh phim làm mờ toả ra quanh khung */

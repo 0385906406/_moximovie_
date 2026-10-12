@@ -18,17 +18,16 @@ async function fetchSection(source: MovieSource, query: ListQuery): Promise<Movi
 
 export default async function PhimHayPage() {
     const source = await getServerSource();
-    const [slider, korean, china, vietnam, wibu] = await Promise.all([
+    const [slider, korean, china, wibu] = await Promise.all([
         getHotMovies(source) as unknown as Promise<Movie[]>,
         fetchSection(source, { type: "tv", country: "han-quoc" }),
         fetchSection(source, { type: "tv", country: "trung-quoc" }),
-        fetchSection(source, { type: "tv", country: "viet-nam" }),
         fetchSection(source, { type: "animation", country: "nhat-ban" }),
     ]);
 
     return (
         <HomePageClient
-            initialData={{ slider, korean, china, vietnam, wibu, source }}
+            initialData={{ slider, korean, china, wibu }}
         />
     );
 }

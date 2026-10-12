@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Users, X } from "lucide-react";
 import { getClientSource } from "@/lib/movieSource";
-import { MAX_NAME } from "@/lib/watchParty/types";
+import { MAX_NAME, MAX_ROOM_NAME } from "@/lib/watchParty/types";
 import { getRoomSecret, getSavedName, saveHostTicket, saveName, saveRoomState } from "@/hooks/useWatchRoom";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -23,6 +24,7 @@ export default function CreateRoomDialog({ slug, movieName, ver, ep, onClose }: 
     const router = useRouter();
     const user = useAuthStore(s => s.user);
     const [name, setName] = useState("");
+    const [roomName, setRoomName] = useState("");
     const [approval, setApproval] = useState(false);
     const [allowControl, setAllowControl] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -43,7 +45,7 @@ export default function CreateRoomDialog({ slug, movieName, ver, ep, onClose }: 
             const res = await fetch("/api/rooms", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ secret: getRoomSecret(), source: getClientSource(), slug, ver, ep, name: n, approval, allowControl }),
+                body: JSON.stringify({ secret: getRoomSecret(), source: getClientSource(), slug, ver, ep, name: n, roomName: roomName.trim(), approval, allowControl }),
             });
             const j = await res.json();
             if (!res.ok) throw new Error(j.error ?? "Không tạo được phòng");
@@ -57,11 +59,12 @@ export default function CreateRoomDialog({ slug, movieName, ver, ep, onClose }: 
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="wp-create-title">
+    /* Gắn thẳng vào <body>: nằm trong trang xem phim (có lớp z-index riêng) thì bị thanh menu đè lên */
+    return createPortal(
+        <div className="fixed inset-0 z-[100000] flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="wp-create-title">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !busy && onClose()} />
             <form onSubmit={create}
-                className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 bg-[#1f2230] border border-white/[0.08] shadow-2xl">
+                className="relative w-full sm:max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-6 bg-[#1f2230] border border-white/[0.08] shadow-2xl">
                 <button type="button" onClick={onClose} aria-label="Đóng" disabled={busy}
                     className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-white/45 hover:text-white hover:bg-white/10">
                     <X size={16} />
@@ -72,8 +75,13 @@ export default function CreateRoomDialog({ slug, movieName, ver, ep, onClose }: 
                     Cùng xem <b className="text-white/85">{movieName}</b> với bạn bè. Bạn là chủ phòng: chọn tập, duyệt người vào, quản lý phòng.
                 </p>
 
-                <label htmlFor="wp-host-name" className="block mt-5 text-[12.5px] text-white/55">Tên hiển thị của bạn</label>
-                <input id="wp-host-name" autoFocus value={name} onChange={e => setName(e.target.value)} maxLength={MAX_NAME}
+                <label htmlFor="wp-room-name-new" className="block mt-5 text-[12.5px] text-white/55">Tên phòng <span className="text-white/30">(không bắt buộc)</span></label>
+                <input id="wp-room-name-new" autoFocus value={roomName} onChange={e => setRoomName(e.target.value)} maxLength={MAX_ROOM_NAME}
+                    placeholder={`Phòng của ${name.trim() || "bạn"}`}
+                    className="mt-1.5 w-full h-11 px-4 rounded-xl text-[14px] text-white bg-white/[0.05] border border-white/10 outline-none focus:border-[#22d3a5]/60 transition" />
+
+                <label htmlFor="wp-host-name" className="block mt-4 text-[12.5px] text-white/55">Tên hiển thị của bạn <span className="text-white/30">(hiện trong nhóm chat)</span></label>
+                <input id="wp-host-name" value={name} onChange={e => setName(e.target.value)} maxLength={MAX_NAME}
                     placeholder="Ví dụ: Minh Anh"
                     className="mt-1.5 w-full h-11 px-4 rounded-xl text-[14px] text-white bg-white/[0.05] border border-white/10 outline-none focus:border-[#22d3a5]/60 transition" />
 
@@ -98,6 +106,7 @@ export default function CreateRoomDialog({ slug, movieName, ver, ep, onClose }: 
                     {busy ? "Đang tạo phòng…" : "Tạo phòng"}
                 </button>
             </form>
-        </div>
+        </div>,
+        document.body,
     );
 }
